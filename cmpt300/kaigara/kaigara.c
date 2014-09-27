@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
+#include <wait.h>
 
 #include "dbg.h"
 #include "defines.h"
@@ -16,17 +18,52 @@ Time* time_now() {
 
         // Form `Time` data.
         Time* now = malloc(sizeof(Time));
+        check_mem(now);
         now->mins = timeinfo->tm_min;
         now->hour = timeinfo->tm_hour; 
 
         return now;
+
+ error:
+        return NULL;
 }
 
 Status prompt() {
+        pid_t pid;
+        int status = EXIT_SUCCESS;  // For setting the initial colour.
+        char* colour;
+
         Time* now = time_now();
         check(now, "Couldn't get the time.");
 
-        printf("%02d:%02d>", now->hour, now->mins);
+        // Set prompt happiness colour.
+        if(status == EXIT_SUCCESS) {
+                colour = ANSI_GREEN;
+        } else {
+                colour = ANSI_RED;
+        }
+
+        printf("%s%02d:%02d%s ~>\n", colour, now->hour, now->mins, ANSI_RESET);
+        fflush(stdout);
+
+        // Fork and execute.
+        pid = fork();
+        if(pid == 0) {
+                debug("Testing `execvp`");
+                char* args[] = { "ls", "-asldfj", NULL };
+                execvp("ls", args);
+
+                if(errno != 0) {
+                        printf(ANSI_RED "Kaigara" ANSI_RESET " >> %s\n",
+                               strerror(errno));
+
+                        goto error;
+                }
+        } else {
+                waitpid(pid, &status, 0);
+                status = WEXITSTATUS(status);
+                log_info("Back in parent - %d", status);
+        }
 
         free(now);
         return Success;
@@ -42,7 +79,7 @@ int main(int argc, char** argv) {
         debug("Starting prompt.");
         puts("Welcome to " ANSI_CYAN "Kaigara!" ANSI_RESET);
         r = prompt();
-        check(r == Success, "The prompt gave out.");
+        quiet_check(r == Success);
 
         return EXIT_SUCCESS;
 
