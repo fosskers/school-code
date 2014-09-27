@@ -1,5 +1,5 @@
-TARGET=
-CFLAGS=-Wall -g -fdiagnostics-color -DNDEBUG
+TARGET=kaigara
+CFLAGS=-Wall -g -fdiagnostics-color #-DNDEBUG
 HEADERS=dbg.h
 OBJECTS=
 
@@ -9,7 +9,7 @@ all: default
 %.o: %.c $(HEADERS)
 	gcc $(CFLAGS) -c $< -o $@
 
-scope: $(OBJECTS)
+kaigara: $(OBJECTS)
 	gcc $(OBJECTS) $(CFLAGS) -o $@
 
 clean:
