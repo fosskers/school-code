@@ -1,7 +1,8 @@
 TARGET=kaigara
-CFLAGS=-Wall -g -fdiagnostics-color #-DNDEBUG
-HEADERS=dbg.h
-OBJECTS=
+WARNINGS=-Wall -Wshadow -Wunreachable-code
+CFLAGS=$(WARNINGS) -g -fdiagnostics-color #-DNDEBUG
+HEADERS=dbg.h defines.h
+OBJECTS=kaigara.o
 
 default: $(TARGET)
 all: default
@@ -15,3 +16,8 @@ kaigara: $(OBJECTS)
 clean:
 	rm -f $(OBJECTS)
 	rm -f $(TARGET)
+
+# Compile Check
+cc:
+	make clean
+	make all
