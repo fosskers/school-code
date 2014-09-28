@@ -13,17 +13,55 @@
 
 // --- //
 
-char* check_mood(char* mood, int happiness) {
+void show_prompt(const char* colour, const Time* now, Mood mood) {
+        int hour = now->hour;
+        int mins = now->mins;
+        char* face;
+
+        switch(mood) {
+        case Great:
+                face = ANSI_CYAN ":D" ANSI_RESET;
+                break;
+
+        case Happy:
+                face = ANSI_GREEN ":)" ANSI_RESET;
+                break;
+
+        case Unimpressed:
+                face = ANSI_YELLOW ":|" ANSI_RESET;
+                break;
+
+        case Mad:
+                face = ANSI_RED ":(" ANSI_RESET;
+                hour = rand() % 24;
+                mins = rand() % 60;
+                break;
+
+        case Livid:
+                face = ANSI_MAGENTA ">:(" ANSI_RESET;
+                hour = rand() % 60;
+                mins = rand() % 60;
+                break;
+        }
+
+        printf("%s%02d:%02d%s %s ~> ",
+               colour, hour, mins, ANSI_RESET, face);
+        fflush(stdout);
+}
+
+Mood check_mood(int happiness) {
+        Mood mood;
+
         if(happiness < 0) {
-                mood = ANSI_MAGENTA ">:(" ANSI_RESET;
+                mood = Livid;
         } else if(happiness <= 1) {
-                mood = ANSI_RED ":(" ANSI_RESET;
+                mood = Mad;
         } else if(happiness <= 3) {
-                mood = ANSI_YELLOW ":|" ANSI_RESET;
+                mood = Unimpressed;
         } else if(happiness <= 10) {
-                mood = ANSI_GREEN ":)" ANSI_RESET;
+                mood = Happy;
         } else {
-                mood = ANSI_CYAN ":D" ANSI_RESET;
+                mood = Great;
         }
 
         return mood;
@@ -60,12 +98,12 @@ Time* time_now() {
         return NULL;
 }
 
-Status prompt() {
+int prompt() {
+        Mood mood;
         Time* now;
         bstring line = NULL;
         char* args[MAX_ARGS];
         char* colour = ANSI_GREEN;
-        char* mood;
         int happiness = 5;
         int status = EXIT_SUCCESS;  // For setting the initial colour.
         pid_t pid;
@@ -75,12 +113,10 @@ Status prompt() {
                 check(now, "Couldn't get the time.");
 
                 // Set prompt mood.
-                mood = check_mood(mood, happiness);
+                mood = check_mood(happiness);
 
                 // User input.
-                printf("%s%02d:%02d%s %s ~> ",
-                       colour, now->hour, now->mins, ANSI_RESET, mood);
-                fflush(stdout);
+                show_prompt(colour, now, mood);
                 line = bgets((bNgetc)fgetc, stdin, '\n');
                 btrimws(line);
 
@@ -127,17 +163,15 @@ Status prompt() {
 
         if(now)  { free(now); }
         if(line) { bdestroy(line); }
-        return Success;
+        return EXIT_SUCCESS;
 
  error:
         if(now)  { free(now); }
         if(line) { bdestroy(line); }
-        return Failure;
+        return EXIT_FAILURE;
 }
 
 int main(int argc, char** argv) {
-        Status r;
-
         // Set the generator seed.
         srand(time(NULL));
 
@@ -145,10 +179,5 @@ int main(int argc, char** argv) {
         puts("Welcome to " ANSI_CYAN "Mell" ANSI_RESET ", the moody shell!");
         printf("Try not to make her %smad%s...\n", ANSI_RED, ANSI_RESET);
         r = prompt();
-        quiet_check(r == Success);
-
-        return EXIT_SUCCESS;
-
- error:
-        return EXIT_FAILURE;
+        return prompt();
 }

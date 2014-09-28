@@ -3,11 +3,8 @@
 
 #define MAX_ARGS 100
 
-typedef enum { Failure, Success } Status;
+typedef enum { Livid, Mad, Unimpressed, Happy, Great } Mood;
 
-typedef struct {
-        int mins;
-        int hour;
-} Time;
+typedef struct { int mins; int hour; } Time;
 
 #endif
