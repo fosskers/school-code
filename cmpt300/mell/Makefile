@@ -1,7 +1,7 @@
 TARGET=mell
 WARNINGS=-Wall -Wshadow -Wunreachable-code
 CFLAGS=$(WARNINGS) -g -fdiagnostics-color -DNDEBUG
-HEADERS=dbg.h defines.h lib/bstrlib.h
+HEADERS=colour.h dbg.h defines.h lib/bstrlib.h
 OBJECTS=mell.o lib/bstrlib.o
 
 default: $(TARGET)

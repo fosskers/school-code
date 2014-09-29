@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <wait.h>
 
+#include "colour.h"
 #include "dbg.h"
 #include "defines.h"
 #include "lib/bstrlib.h"
@@ -166,12 +167,15 @@ int prompt() {
                 line = bgets((bNgetc)fgetc, stdin, '\n');
                 btrimws(line);
 
-                if(happiness < 0 && (rand() % 20) < 10) {
-                        printf("%sMell%s >> No, I'm mad at you.\n",
-                               ANSI_YELLOW,
-                               ANSI_RESET);
-                } else if(blength(line) > 0) {
-                        // Empty input is silently ignored.
+                // Empty input is silently ignored.
+                if(blength(line) > 0) {
+                        if(mood == Livid && (rand() % 20) < 10) {
+                                printf("%sMell%s >> No, I'm mad at you.\n",
+                                       ANSI_YELLOW,
+                                       ANSI_RESET);
+                                continue;
+                        }
+
                         parse_cmd(line, args);
 
                         // Check for shell-specific commands.
