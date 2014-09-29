@@ -17,7 +17,12 @@ Features
 
 Compilation
 -----------
-Just run `make`.
+Just run `make`. It is compiled with debugging information.
+
+Usage
+-----
+- `exit`: Quit the shell.
+- `cd`: Move to another directory. `cd ..` moves to the parent directory.
 
 Libraries
 ---------
