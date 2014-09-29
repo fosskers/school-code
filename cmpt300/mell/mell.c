@@ -1,4 +1,4 @@
-/* mShell, the moody shell */
+/* Mell, the moody shell */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -77,6 +77,7 @@ Status check_errno() {
                 printf("%sMell%s >> %s\n",
                        ANSI_YELLOW, ANSI_RESET, strerror(errno));
 
+                errno = 0;
                 return Failure;
         }
 
@@ -145,20 +146,24 @@ Time* time_now() {
 
 int prompt() {
         Mood mood;
-        Time* now;
-        bstring line = NULL;
+        Time* now     = NULL;
+        bstring line  = NULL;
         char* args[MAX_ARGS];
-        char* colour = ANSI_GREEN;
-        char* path;
+        char* colour  = ANSI_GREEN;
+        char* path    = NULL;
         int happiness = 5;
-        int status = EXIT_SUCCESS;  // For setting the initial colour.
+        int status    = EXIT_SUCCESS;  // For setting the initial colour.
         pid_t pid;
 
         while(true) {
+                // Free memory used in the previous loop.
+                if(path) { free(path);     }
+                if(now)  { free(now);      }
+                if(line) { bdestroy(line); }
+
+                // Prepare the prompt.
                 now = time_now();
                 check(now, "Couldn't get the time.");
-
-                // Set prompt mood.
                 mood = check_mood(happiness);
                 path = pwd();
 
@@ -183,7 +188,10 @@ int prompt() {
                                 puts("Goodbye!");
                                 break;
                         } else if(strcmp(args[0], "cd") == 0) {
-                                if(args[1] != NULL) { chdir(args[1]); }
+                                if(args[1] != NULL) {
+                                        chdir(args[1]);
+                                        check_errno();
+                                }
                                 status = EXIT_SUCCESS;
                         } else {
                                 // Fork and execute.
@@ -210,11 +218,6 @@ int prompt() {
                                 happiness--;
                         }
                 }
-
-                // Free memory used in this loop.
-                free(path);
-                free(now);
-                bdestroy(line);
         }
 
         if(path) { free(path);     }
