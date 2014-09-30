@@ -112,7 +112,7 @@ char* pwd() {
 }
 
 // Splits and writes the contents of `line` to a given String array.
-void parse_cmd(const bstring line, char** args) {
+struct bstrList* parse_cmd(const bstring line, char** args) {
         int i = 0;
         struct bstrList* list = bsplit(line, ' ');
         
@@ -122,7 +122,7 @@ void parse_cmd(const bstring line, char** args) {
 
         args[i] = NULL;
 
-        //        bstrListDestroy(list);
+        return list;
 }
 
 Time* time_now() {
@@ -154,12 +154,17 @@ int prompt() {
         int happiness = 5;
         int status    = EXIT_SUCCESS;  // For setting the initial colour.
         pid_t pid;
+        struct bstrList* list = NULL;
 
         while(true) {
                 // Free memory used in the previous loop.
                 if(path) { free(path);     }
                 if(now)  { free(now);      }
                 if(line) { bdestroy(line); }
+                if(list) {
+                        bstrListDestroy(list);
+                        list = NULL;
+                }
 
                 // Prepare the prompt.
                 now = time_now();
@@ -181,12 +186,15 @@ int prompt() {
                                 continue;
                         }
 
-                        parse_cmd(line, args);
+                        list = parse_cmd(line, args);
 
                         // Check for shell-specific commands.
                         if(strcmp(args[0], "exit") == 0) {
                                 puts("Goodbye!");
                                 break;
+                        } else if(strcmp(args[0], "sorry") == 0) {
+                                happiness = 5;
+                                status = EXIT_SUCCESS;
                         } else if(strcmp(args[0], "cd") == 0) {
                                 if(args[1] != NULL) {
                                         chdir(args[1]);
