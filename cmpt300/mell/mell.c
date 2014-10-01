@@ -206,7 +206,9 @@ int prompt() {
                                 pid = fork();
                                 if(pid == 0) {
                                         execvp(args[0], args);
-                                        if(check_errno() == Failure) { goto error; }
+                                        if(check_errno() == Failure) {
+                                                goto error;
+                                        }
                                 } else {
                                         waitpid(pid, &status, 0);
                                         status = WEXITSTATUS(status);

@@ -24,6 +24,16 @@ Usage
 - `exit`: Quit the shell.
 - `cd`: Move to another directory. `cd ..` moves to the parent directory.
 
+Mell's Moods
+------------
+- Mell doesn't like it when you don't treat her nice.
+
+  -  :D => Great => Mell thinks you're great!
+  -  :) => Happy => Mell likes you. She'll tell you what directory you're in.
+  -  :| => Unimpressed => Well, now Mell doesn't feel like telling you your cwd.
+  -  :( => Mad => Might lies to you about the time.
+  - >:( => Livid => Mell won't listen to your commands sometimes.
+
 Libraries
 ---------
 Because strings are a nightmare in C, we employ the `bstring` library
