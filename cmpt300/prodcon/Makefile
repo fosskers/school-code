@@ -2,8 +2,8 @@ TARGET=foundry
 WARNINGS=-Wall -Wshadow -Wunreachable-code
 CFLAGS=$(WARNINGS) -g -O -fdiagnostics-color -DNDEBUG
 LDFLAGS=-lncurses
-HEADERS=colour.h dbg.h lib/bstrlib.h
-OBJECTS=foundry.o lib/bstrlib.o
+HEADERS=colour.h dbg.h utils.h lib/bstrlib.h
+OBJECTS=foundry.o utils.o lib/bstrlib.o
 
 default: $(TARGET)
 all: default
@@ -11,7 +11,7 @@ all: default
 %.o: %.c $(HEADERS)
 	gcc $(CFLAGS) -c $< -o $@
 
-foundary: $(OBJECTS)
+foundry: $(OBJECTS)
 	gcc $(OBJECTS) $(CFLAGS) $(LDFLAGS) -o $@
 
 clean:

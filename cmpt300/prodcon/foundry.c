@@ -6,6 +6,7 @@
 
 #include "lib/bstrlib.h"
 #include "dbg.h"
+#include "utils.h"
 
 #define WIDTH  30
 #define HEIGHT 10
@@ -22,69 +23,72 @@
 
 /* How to make the cursor disappear? */
 
-void menu(WINDOW* win, int highlight) {
-        int i;
-        int x = 2;
-        int y = 2;
-        char* choices[] = {
-                "Cats", "Dogs", "Birds", "Snakes"
-        };
+/* void menu(WINDOW* win, int highlight) { */
+/*         int i; */
+/*         int x = 2; */
+/*         int y = 2; */
+/*         char* choices[] = { */
+/*                 "Cats", "Dogs", "Birds", "Snakes" */
+/*         }; */
 
-        box(win, 0, 0);
+/*         box(win, 0, 0); */
 
-        for(i = 0; i < CHOICES; i++) {
-                if(highlight == i + 1) {
-                        wattron(win, A_REVERSE);
-                        mvwprintw(win, y, x, "%s", choices[i]);
-                        wattroff(win, A_REVERSE);
-                } else {
-                        mvwprintw(win, y, x, "%s", choices[i]);
-                }
+/*         for(i = 0; i < CHOICES; i++) { */
+/*                 if(highlight == i + 1) { */
+/*                         wattron(win, A_REVERSE); */
+/*                         mvwprintw(win, y, x, "%s", choices[i]); */
+/*                         wattroff(win, A_REVERSE); */
+/*                 } else { */
+/*                         mvwprintw(win, y, x, "%s", choices[i]); */
+/*                 } */
 
-                y++;
-        }
+/*                 y++; */
+/*         } */
 
-        wrefresh(win);
+/*         wrefresh(win); */
+/* } */
+
+void f_box(WINDOW* win, int n, int m) {
+        init_pair(1, COLOR_CYAN, COLOR_BLACK);
+        box(win, n, m);
+        attron(A_BOLD | COLOR_PAIR(1));
+        mvprintw(LINES - 2, 1, "Press q to quit.");
+        refresh();
+        attroff(A_BOLD | COLOR_PAIR(1));
 }
 
 int main(int argc, char** argv) {
-        WINDOW* win;
         int ch;
         char* msg = "Welcome to the Foundry!";
-        int startx, starty;
-        int highlight = 1;
-        int tools;
-        int operators;
+        int tools, operators;
 
         /* Initialize the screen */
         initscr();
         raw();
         keypad(stdscr, true);
         start_color();
-        init_pair(1, COLOR_CYAN, COLOR_BLACK);
 
         /* Intro screen */
-        box(stdscr, 0, 0);
+        f_box(stdscr, 0, 0);
+        curs_set(0);
         mvprintw(LINES / 2, (COLS - strlen(msg)) / 2, "%s", msg);
-        attron(A_BOLD | COLOR_PAIR(1));
-        mvprintw(LINES - 2, 1, "Press q to quit.");
-        refresh();
-        attroff(A_BOLD | COLOR_PAIR(1));
 
         // Wait for the user.
         getch();
         clear();
 
         /* Get initial simulation settings */
-        printw("Tools in The Foundry: ");
+        curs_set(1);
+        f_box(stdscr, 0, 0);
+        mvprintw(1, 1, "Tools in The Foundry: ");
         refresh();
-        tools = getch();
-        check(tools > 47 && tools < 58, "tools: Number not given.");
+        tools = ctoi(ignore_til_num());
+        check(tools != -1, "tools: Number not given.");
 
-        printw("\nOperators in The Foundry: ");
+        mvprintw(2, 1, "Operators in The Foundry: ");
         refresh();
-        operators = getch();
-        check(operators > 47 && operators < 58, "operators: Number not given.");
+        operators = ctoi(ignore_til_num());
+        check(operators != -1, "operators: Number not given.");
         clear();
 
         /* Interaction is over */
@@ -92,49 +96,20 @@ int main(int argc, char** argv) {
         curs_set(0);
 
         /* Main page */
-        printw("Tools: %d --- Operators: %d", tools, operators);
+        f_box(stdscr, 0, 0);
+        mvprintw(1, 1, "Tools: %d --- Operators: %d", tools, operators);
         refresh();
 
-        /*
-        startx = (COLS - WIDTH) / 2;
-        starty = (LINES - HEIGHT) / 2;
-        win = newwin(10, 30, starty, startx);
-        keypad(win, true);
-        mvprintw(0,0, "Use arrows to select.");
-        refresh();
-
-        menu(win, highlight);
-
-        while((ch = getch()) != 'q') {
-                switch(ch) {
-                case KEY_UP:
-                        if(highlight == 1) {
-                                highlight = CHOICES;
-                        } else {
-                                highlight--;
-                        }
-                        break;
-                case KEY_DOWN:
-                        if(highlight == CHOICES) {
-                                highlight = 1;
-                        } else {
-                                highlight++;
-                        }
-                        break;
-                default:
-                        break;
-                }
-                refresh();
-                menu(win, highlight);
-        }
-        */
-
+        /* Main event loop */
         while((ch = getch()) != 'q') {}
+
         endwin();
+        puts("Goodbye!");
 
         return EXIT_SUCCESS;
 
  error:
         endwin();
+        puts("You were kicked out of The Foundry.");
         return EXIT_FAILURE;
 }
