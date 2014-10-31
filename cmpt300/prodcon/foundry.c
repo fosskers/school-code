@@ -1,16 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <ncurses.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "lib/bstrlib.h"
 #include "dbg.h"
 #include "utils.h"
-
-#define WIDTH  30
-#define HEIGHT 10
-#define CHOICES 4
 
 /*
  * Useful things:
@@ -21,52 +18,82 @@
  * Window dumping: putwin(), getwin()
  */
 
-/* How to make the cursor disappear? */
+void f_box(WINDOW*, int, int);
 
-/* void menu(WINDOW* win, int highlight) { */
-/*         int i; */
-/*         int x = 2; */
-/*         int y = 2; */
-/*         char* choices[] = { */
-/*                 "Cats", "Dogs", "Birds", "Snakes" */
-/*         }; */
+// --- //
 
-/*         box(win, 0, 0); */
+int run_simulation(int tools, int operators) {
+        bool paused = false;
+        bool done = false;
+        int ch = 0;
+        int time = 0;
+        int x, y;
 
-/*         for(i = 0; i < CHOICES; i++) { */
-/*                 if(highlight == i + 1) { */
-/*                         wattron(win, A_REVERSE); */
-/*                         mvwprintw(win, y, x, "%s", choices[i]); */
-/*                         wattroff(win, A_REVERSE); */
-/*                 } else { */
-/*                         mvwprintw(win, y, x, "%s", choices[i]); */
-/*                 } */
+        /* Main page */
+        nodelay(stdscr, true);
+        f_box(stdscr, 0, 0);
+        mvprintw(1, 1, "Tools: %d", tools);
+        mvprintw(2, 1, "Operators: %d", operators);
+        refresh();
 
-/*                 y++; */
-/*         } */
+        /* Main event loop */
+        while(!done) {
+                mvprintw(3, 1, "Time: %d", time);
 
-/*         wrefresh(win); */
-/* } */
+                switch(ch) {
+                case 'p':
+                        if(paused) {
+                                paused = false;
+                                getmaxyx(stdscr, y, x);
+                                mvprintw(1, x - 10, "        ");
+                        } else {
+                                paused = true;
+                                attron(COLOR_PAIR(2));
+                                getmaxyx(stdscr, y, x);
+                                mvprintw(1, x - 10, "[PAUSED]");
+                                attroff(COLOR_PAIR(2));
+                        }
+
+                        break;
+                case 'q':
+                        done = true;
+                        break;
+                        
+                default:
+                        break;
+                }
+
+                if(!paused) {
+                        time++;
+                        sleep(1);
+                }
+
+                refresh();
+                ch = getch();
+        }
+
+        return EXIT_SUCCESS;
+}
 
 void f_box(WINDOW* win, int n, int m) {
-        init_pair(1, COLOR_CYAN, COLOR_BLACK);
         box(win, n, m);
         attron(A_BOLD | COLOR_PAIR(1));
-        mvprintw(LINES - 2, 1, "Press q to quit.");
+        mvprintw(LINES - 2, 1, "Press q to quit, p to pause.");
         refresh();
         attroff(A_BOLD | COLOR_PAIR(1));
 }
 
 int main(int argc, char** argv) {
-        int ch;
         char* msg = "Welcome to the Foundry!";
-        int tools, operators;
+        int tools, operators, result;
 
         /* Initialize the screen */
         initscr();
         raw();
         keypad(stdscr, true);
         start_color();
+        init_pair(1, COLOR_CYAN, COLOR_BLACK);
+        init_pair(2, COLOR_YELLOW, COLOR_BLACK);
 
         /* Intro screen */
         f_box(stdscr, 0, 0);
@@ -94,14 +121,8 @@ int main(int argc, char** argv) {
         /* Interaction is over */
         noecho();
         curs_set(0);
-
-        /* Main page */
-        f_box(stdscr, 0, 0);
-        mvprintw(1, 1, "Tools: %d --- Operators: %d", tools, operators);
-        refresh();
-
-        /* Main event loop */
-        while((ch = getch()) != 'q') {}
+        result = run_simulation(tools, operators);
+        check(result == EXIT_SUCCESS, "Simulation failed.");
 
         endwin();
         puts("Goodbye!");
