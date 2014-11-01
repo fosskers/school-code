@@ -24,10 +24,9 @@ void f_box(WINDOW*, int, int);
 
 int run_simulation(int tools, int operators) {
         bool paused = false;
-        bool done = false;
         int ch = 0;
         int time = 0;
-        int x, y;
+        int x, y, i;
 
         /* Main page */
         nodelay(stdscr, true);
@@ -36,8 +35,19 @@ int run_simulation(int tools, int operators) {
         mvprintw(2, 1, "Operators: %d", operators);
         refresh();
 
+        /* Display initial graphics */
+        getmaxyx(stdscr, y, x);
+        for(i = 0; i < tools; i++) {
+                mvprintw(y/2 - 4, x/2 - tools + (i * 2), "T");
+        }
+        attron(A_REVERSE);
+        mvprintw(y/2 - 2, x/2 - tools, "G");
+        mvprintw(y/2, x/2 - tools, "G");
+        mvprintw(y/2 + 2, x/2 - tools, "G");
+        attroff(A_REVERSE);
+
         /* Main event loop */
-        while(!done) {
+        while(ch != 'q') {
                 mvprintw(3, 1, "Time: %d", time);
 
                 switch(ch) {
@@ -45,18 +55,15 @@ int run_simulation(int tools, int operators) {
                         if(paused) {
                                 paused = false;
                                 getmaxyx(stdscr, y, x);
-                                mvprintw(1, x - 10, "        ");
+                                mvprintw(1, x - 9, "        ");
                         } else {
                                 paused = true;
                                 attron(COLOR_PAIR(2));
                                 getmaxyx(stdscr, y, x);
-                                mvprintw(1, x - 10, "[PAUSED]");
+                                mvprintw(1, x - 9, "[PAUSED]");
                                 attroff(COLOR_PAIR(2));
                         }
 
-                        break;
-                case 'q':
-                        done = true;
                         break;
                         
                 default:
@@ -94,6 +101,7 @@ int main(int argc, char** argv) {
         start_color();
         init_pair(1, COLOR_CYAN, COLOR_BLACK);
         init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(3, COLOR_RED, COLOR_BLACK);
 
         /* Intro screen */
         f_box(stdscr, 0, 0);
@@ -110,12 +118,12 @@ int main(int argc, char** argv) {
         mvprintw(1, 1, "Tools in The Foundry: ");
         refresh();
         tools = ctoi(ignore_til_num());
-        check(tools != -1, "tools: Number not given.");
+        check(tools > 0, "tools: Invalid number given.");
 
         mvprintw(2, 1, "Operators in The Foundry: ");
         refresh();
         operators = ctoi(ignore_til_num());
-        check(operators != -1, "operators: Number not given.");
+        check(operators > 0, "operators: Invalid number given.");
         clear();
 
         /* Interaction is over */
