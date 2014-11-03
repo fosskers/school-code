@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "dbg.h"
@@ -37,7 +38,7 @@
 
 /* GENERAL DEFINES */
 #define MAX_METALS 10
-#define GENERATORS 3
+#define METAL_TYPES 3
 
 typedef enum { NoMetal, Iron, Bronze, Zinc } Metal;
 
@@ -50,6 +51,11 @@ typedef struct {
         Metal metal2;
         Alloy produced;
 } Operator;
+
+typedef struct {
+        Metal metal;
+        int tools;  // # of tools user chose.
+} MetalWrap;
 
 /* SHARED RESOURCES */
 typedef struct metals {
@@ -73,7 +79,11 @@ pthread_mutex_t metal_mutex;
 pthread_mutex_t alloy_mutex;
 pthread_mutex_t tool_mutex;
 
+pthread_cond_t metals_full;  // The metals queue is full.
+pthread_cond_t metals_ok;    // The metals queue can hold more.
+
 int tool_counter = 0;
+bool paused = false;
 
 // --- //
 
@@ -83,8 +93,54 @@ Operator* operator_create(int op_num);
 
 // --- //
 
-void* generate_metal(void* metal) {
-        // Be a thread.
+void* generate_metal(void* metalwrap) {
+        Metal metal = ((MetalWrap*)metalwrap)->metal;
+        int tools   = ((MetalWrap*)metalwrap)->tools;
+        metals* m;
+        int y, x;
+        struct timespec t;
+        t.tv_sec  = 0;
+        t.tv_nsec = 500000000L;  // Half a second.
+
+        getmaxyx(stdscr,y,x);
+
+        while(true) {
+                while(paused) {
+                        nanosleep(&t, NULL);
+                }
+
+                pthread_mutex_lock(&metal_mutex);
+
+                // The Metals queue is full!
+                while(metals_len == MAX_METALS) {
+                        mvprintw(y/2 - 2 + ((metal - 1) * 2),
+                                 x/2 - tools - 5, "G");
+                        pthread_cond_wait(&metals_full, &metal_mutex);
+                }
+
+                m = malloc(sizeof(metals));
+                check_mem(m);
+
+                // New metal in the queue.
+                m->metal = metal;
+                TAILQ_INSERT_HEAD(&metal_head, m, nexts);
+                metals_len++;
+
+                // Graphics
+                getmaxyx(stdscr,y,x);
+                attron(A_REVERSE);
+                mvprintw(y/2 - 2 + ((metal - 1) * 2), x/2 - tools - 5, "G");
+                attroff(A_REVERSE);
+
+                pthread_mutex_unlock(&metal_mutex);
+
+                // Take a rest.
+                nanosleep(&t, NULL);
+        }
+
+ error:
+        free(metalwrap);
+        pthread_exit(0);
 }
 
 Operator* operator_create(int op_num) {
@@ -104,18 +160,12 @@ Operator* operator_create(int op_num) {
 }
 
 int run_simulation(int tools, int operators) {
-        bool paused = false;
         int ch      = 0;
         int time    = 0;
-        int x, y, i;
-        pthread_t generator_ts[GENERATORS];
+        int x, y, i, r;
+        MetalWrap* mw;
+        pthread_t generator_ts[METAL_TYPES];
         pthread_t* operators_ts;
-
-        // Make generators, give each an element
-        // Associate with threads and join
-        
-        // Make operator list
-        // Associate with threads and join
 
         /* Initialize Queues */
         TAILQ_INIT(&metal_head);
@@ -125,6 +175,25 @@ int run_simulation(int tools, int operators) {
         pthread_mutex_init(&metal_mutex, NULL);
         pthread_mutex_init(&alloy_mutex, NULL);
         pthread_mutex_init(&tool_mutex, NULL);
+        pthread_cond_init(&metals_full, NULL);
+        pthread_cond_init(&metals_ok, NULL);
+
+        /* Create Generator threads */
+        for(i = 0; i < METAL_TYPES; i++) {
+                mw = malloc(sizeof(MetalWrap));
+                check_mem(mw);
+                mw->metal = NoMetal + i + 1;
+                mw->tools = tools;
+
+                r = pthread_create(&generator_ts[i],
+                                   NULL,
+                                   generate_metal,
+                                   (void*)mw);
+                check(r == 0, "Failed to create thread.");
+        }
+
+        // Make operator list
+        // Associate with threads and join
 
         /* Main page */
         nodelay(stdscr, true);
@@ -141,13 +210,6 @@ int run_simulation(int tools, int operators) {
                 mvprintw(y/2 - 4, x/2 - tools + (i * 2), "T");
         }
 
-        // Display Generators
-        attron(A_REVERSE);
-        mvprintw(y/2 - 2, x/2 - tools - 5, "G");
-        mvprintw(y/2, x/2 - tools - 5, "G");
-        mvprintw(y/2 + 2, x/2 - tools - 5, "G");
-        attroff(A_REVERSE);
-
         // Display Operators
         for(i = 0; i < operators; i++) {
                 mvprintw(y/2 - operators + (i * 2) + 1, x/2 + tools + 4, "O");
@@ -158,14 +220,14 @@ int run_simulation(int tools, int operators) {
                 mvprintw(y/2, x/2 - tools - 3 + i, "=");
                 mvprintw(y/2, x/2 + 3 + i, "=");
         }
-        mvprintw(y/2, x/2 - 3, "[ %02d ]", metals_len);
-
-        // Output Queue
-        mvprintw(y/2, x/2 + tools + 6, ">=>[ %03d ]", alloys_len);
 
         /* Main event loop */
         while(ch != 'q') {
                 mvprintw(3, 1, "Time: %d", time);
+
+                // Queue lengths
+                mvprintw(y/2, x/2 - 3, "[ %02d ]", metals_len);
+                mvprintw(y/2, x/2 + tools + 6, ">=>[ %03d ]", alloys_len);
 
                 switch(ch) {
                 case 'p':
@@ -197,6 +259,9 @@ int run_simulation(int tools, int operators) {
         }
 
         return EXIT_SUCCESS;
+
+ error:
+        return EXIT_FAILURE;
 }
 
 void f_box(WINDOW* win, int n, int m) {
