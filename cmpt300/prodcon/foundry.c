@@ -1,12 +1,27 @@
+/* The Foundry
+ * An nCurses Producer-Consumer Problem Simulator
+ * Metal choices made based on: http://en.wikipedia.org/wiki/Foundry
+ *
+ * author:   Colin Woodbury
+ * created:  2014 October 28
+ * modified: 2014 November  2 @ 14:25
+ */
+
+/* TODO:
+ * - Speed up/down on arrow keys (use nanosleep)
+ */
+
 #include <ncurses.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/queue.h>
 #include <unistd.h>
 
-#include "lib/bstrlib.h"
 #include "dbg.h"
+#include "lib/bstrlib.h"
 #include "utils.h"
 
 /*
@@ -18,15 +33,98 @@
  * Window dumping: putwin(), getwin()
  */
 
-void f_box(WINDOW*, int, int);
+// --- //
+
+/* GENERAL DEFINES */
+#define MAX_METALS 10
+#define GENERATORS 3
+
+typedef enum { NoMetal, Iron, Bronze, Zinc } Metal;
+
+typedef enum { NoAlloy, IronBronze, IronZinc, BronzeZinc } Alloy;
+
+typedef struct {
+        int op_num;
+        int tools_taken;
+        Metal metal1;
+        Metal metal2;
+        Alloy produced;
+} Operator;
+
+/* SHARED RESOURCES */
+typedef struct metals {
+        Metal metal;
+        TAILQ_ENTRY(metals) nexts;
+} metals;
+
+typedef struct alloys {
+        Alloy alloy;
+        TAILQ_ENTRY(alloys) nexts;
+} alloys;
+
+TAILQ_HEAD(metalhead, metals) metal_head;
+TAILQ_HEAD(alloyhead, alloys) alloy_head;
+
+// Lengths of the Metal and Alloys queues.
+int metals_len = 0;
+int alloys_len = 0;
+
+pthread_mutex_t metal_mutex;
+pthread_mutex_t alloy_mutex;
+pthread_mutex_t tool_mutex;
+
+int tool_counter = 0;
 
 // --- //
 
+/* Forward Declarations */
+void f_box(WINDOW*, int, int);
+Operator* operator_create(int op_num);
+
+// --- //
+
+void* generate_metal(void* metal) {
+        // Be a thread.
+}
+
+Operator* operator_create(int op_num) {
+        Operator* o = malloc(sizeof(Operator));
+        check_mem(o);
+
+        o->op_num      = op_num;
+        o->tools_taken = 0;
+        o->metal1      = NoMetal;
+        o->metal2      = NoMetal;
+        o->produced    = NoAlloy;
+
+        return o;
+
+ error:
+        return NULL;
+}
+
 int run_simulation(int tools, int operators) {
         bool paused = false;
-        int ch = 0;
-        int time = 0;
+        int ch      = 0;
+        int time    = 0;
         int x, y, i;
+        pthread_t generator_ts[GENERATORS];
+        pthread_t* operators_ts;
+
+        // Make generators, give each an element
+        // Associate with threads and join
+        
+        // Make operator list
+        // Associate with threads and join
+
+        /* Initialize Queues */
+        TAILQ_INIT(&metal_head);
+        TAILQ_INIT(&alloy_head);
+
+        /* Initialize Mutexes */
+        pthread_mutex_init(&metal_mutex, NULL);
+        pthread_mutex_init(&alloy_mutex, NULL);
+        pthread_mutex_init(&tool_mutex, NULL);
 
         /* Main page */
         nodelay(stdscr, true);
@@ -37,14 +135,33 @@ int run_simulation(int tools, int operators) {
 
         /* Display initial graphics */
         getmaxyx(stdscr, y, x);
+        
+        // Display Tools
         for(i = 0; i < tools; i++) {
                 mvprintw(y/2 - 4, x/2 - tools + (i * 2), "T");
         }
+
+        // Display Generators
         attron(A_REVERSE);
-        mvprintw(y/2 - 2, x/2 - tools, "G");
-        mvprintw(y/2, x/2 - tools, "G");
-        mvprintw(y/2 + 2, x/2 - tools, "G");
+        mvprintw(y/2 - 2, x/2 - tools - 5, "G");
+        mvprintw(y/2, x/2 - tools - 5, "G");
+        mvprintw(y/2 + 2, x/2 - tools - 5, "G");
         attroff(A_REVERSE);
+
+        // Display Operators
+        for(i = 0; i < operators; i++) {
+                mvprintw(y/2 - operators + (i * 2) + 1, x/2 + tools + 4, "O");
+        }
+        
+        // Input Queue
+        for(i = 0; i < tools; i++) {
+                mvprintw(y/2, x/2 - tools - 3 + i, "=");
+                mvprintw(y/2, x/2 + 3 + i, "=");
+        }
+        mvprintw(y/2, x/2 - 3, "[ %02d ]", metals_len);
+
+        // Output Queue
+        mvprintw(y/2, x/2 + tools + 6, ">=>[ %03d ]", alloys_len);
 
         /* Main event loop */
         while(ch != 'q') {
@@ -91,7 +208,7 @@ void f_box(WINDOW* win, int n, int m) {
 }
 
 int main(int argc, char** argv) {
-        char* msg = "Welcome to the Foundry!";
+        const char* msg = "Welcome to the Foundry!";
         int tools, operators, result;
 
         /* Initialize the screen */
@@ -118,7 +235,7 @@ int main(int argc, char** argv) {
         mvprintw(1, 1, "Tools in The Foundry: ");
         refresh();
         tools = ctoi(ignore_til_num());
-        check(tools > 0, "tools: Invalid number given.");
+        check(tools > 1, "tools: Invalid number given.");
 
         mvprintw(2, 1, "Operators in The Foundry: ");
         refresh();
@@ -139,6 +256,5 @@ int main(int argc, char** argv) {
 
  error:
         endwin();
-        puts("You were kicked out of The Foundry.");
         return EXIT_FAILURE;
 }

@@ -1,7 +1,7 @@
 TARGET=foundry
 WARNINGS=-Wall -Wshadow -Wunreachable-code
 CFLAGS=$(WARNINGS) -g -O -fdiagnostics-color -DNDEBUG
-LDFLAGS=-lncurses
+LDFLAGS=-lncurses -pthread
 HEADERS=colour.h dbg.h utils.h lib/bstrlib.h
 OBJECTS=foundry.o utils.o lib/bstrlib.o
 
