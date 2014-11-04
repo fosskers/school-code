@@ -1,10 +1,11 @@
 /* The Foundry
  * An nCurses Producer-Consumer Problem Simulator
  * Metal choices made based on: http://en.wikipedia.org/wiki/Foundry
+ * Alloy choices made based on: http://en.wikipedia.org/wiki/List_of_alloys
  *
  * author:   Colin Woodbury
  * created:  2014 October 28
- * modified: 2014 November  2 @ 14:25
+ * modified: 2014 November  3 @ 21:38
  */
 
 /* TODO:
@@ -40,64 +41,81 @@
 #define MAX_METALS 10
 #define METAL_TYPES 3
 
-typedef enum { NoMetal, Iron, Bronze, Zinc } Metal;
+typedef enum { NoMetal, Tin, Copper, Lead } Metal;
 
-typedef enum { NoAlloy, IronBronze, IronZinc, BronzeZinc } Alloy;
+/*
+ * Tin + Copper  = Bronze
+ * Tin + Lead    = Solder
+ * Copper + Lead = Molybdochalkos
+ */
+typedef enum { NoAlloy, Bronze, Solder, Molybdochalkos } Alloy;
 
 typedef struct {
         int op_num;
         int tools_taken;
+        int max_tools;
         Metal metal1;
         Metal metal2;
         Alloy produced;
 } Operator;
 
+// For passing multiple arguments to a threaded function.
 typedef struct {
         Metal metal;
-        int tools;  // # of tools user chose.
+        int max_tools;  // # of tools user chose.
 } MetalWrap;
 
 /* SHARED RESOURCES */
+// --- DOMAIN OF METAL_MUTEX --- //
+pthread_mutex_t metal_mutex;
+pthread_cond_t metals_full;  // The metals queue is full.
+pthread_cond_t metals_ok;    // The metals queue can hold more.
+
 typedef struct metals {
         Metal metal;
         TAILQ_ENTRY(metals) nexts;
 } metals;
+
+TAILQ_HEAD(metalhead, metals) metal_head;
+
+int metals_len = 0;  // Length of the Metal queue.
+
+// --- DOMAIN OF ALLOY_MUTEX --- //
+pthread_mutex_t alloy_mutex;
 
 typedef struct alloys {
         Alloy alloy;
         TAILQ_ENTRY(alloys) nexts;
 } alloys;
 
-TAILQ_HEAD(metalhead, metals) metal_head;
 TAILQ_HEAD(alloyhead, alloys) alloy_head;
 
-// Lengths of the Metal and Alloys queues.
-int metals_len = 0;
-int alloys_len = 0;
+int alloys_len = 0;  // Length of the Alloy queue.
 
-pthread_mutex_t metal_mutex;
-pthread_mutex_t alloy_mutex;
-pthread_mutex_t tool_mutex;
-
-pthread_cond_t metals_full;  // The metals queue is full.
-pthread_cond_t metals_ok;    // The metals queue can hold more.
+// --- DOMAIN OF TOOLS_MUTEX --- //
+pthread_mutex_t tools_mutex;
 
 int tool_counter = 0;
+
+// --- OTHER - DON'T TOUCH --- //
 bool paused = false;
 
 // --- //
 
 /* Forward Declarations */
 void f_box(WINDOW*, int, int);
-Operator* operator_create(int op_num);
+Operator* operator_create(int op_num, int max_tools);
+char* metal_to_string(Metal);
 
 // --- //
 
 void* generate_metal(void* metalwrap) {
         Metal metal = ((MetalWrap*)metalwrap)->metal;
-        int tools   = ((MetalWrap*)metalwrap)->tools;
-        metals* m;
+        int tools   = ((MetalWrap*)metalwrap)->max_tools;
+        const char* metal_name = metal_to_string(metal);
+        int generated = 0;
         int y, x;
+        metals* m;
         struct timespec t;
         t.tv_sec  = 0;
         t.tv_nsec = 500000000L;  // Half a second.
@@ -125,8 +143,10 @@ void* generate_metal(void* metalwrap) {
                 m->metal = metal;
                 TAILQ_INSERT_HEAD(&metal_head, m, nexts);
                 metals_len++;
+                generated++;
 
                 // Graphics
+                mvprintw(metal, 20, "%s: %d", metal_name, generated);
                 getmaxyx(stdscr,y,x);
                 attron(A_REVERSE);
                 mvprintw(y/2 - 2 + ((metal - 1) * 2), x/2 - tools - 5, "G");
@@ -143,12 +163,23 @@ void* generate_metal(void* metalwrap) {
         pthread_exit(0);
 }
 
-Operator* operator_create(int op_num) {
+void* operate(void* operator) {
+        Operator* o = (Operator*)operator;
+        metals* m;
+        alloys* a;
+        int y, x;
+
+ error:
+        pthread_exit(0);
+}
+
+Operator* operator_create(int op_num, int max_tools) {
         Operator* o = malloc(sizeof(Operator));
         check_mem(o);
 
         o->op_num      = op_num;
         o->tools_taken = 0;
+        o->max_tools   = max_tools;
         o->metal1      = NoMetal;
         o->metal2      = NoMetal;
         o->produced    = NoAlloy;
@@ -157,6 +188,14 @@ Operator* operator_create(int op_num) {
 
  error:
         return NULL;
+}
+
+char* metal_to_string(Metal metal) {
+        char* names[4] = {
+                "NoMetal", "Tin", "Copper", "Lead"
+        };
+
+        return names[metal];
 }
 
 int run_simulation(int tools, int operators) {
@@ -174,7 +213,7 @@ int run_simulation(int tools, int operators) {
         /* Initialize Mutexes */
         pthread_mutex_init(&metal_mutex, NULL);
         pthread_mutex_init(&alloy_mutex, NULL);
-        pthread_mutex_init(&tool_mutex, NULL);
+        pthread_mutex_init(&tools_mutex, NULL);
         pthread_cond_init(&metals_full, NULL);
         pthread_cond_init(&metals_ok, NULL);
 
@@ -183,7 +222,7 @@ int run_simulation(int tools, int operators) {
                 mw = malloc(sizeof(MetalWrap));
                 check_mem(mw);
                 mw->metal = NoMetal + i + 1;
-                mw->tools = tools;
+                mw->max_tools = tools;
 
                 r = pthread_create(&generator_ts[i],
                                    NULL,
