@@ -5,11 +5,7 @@
  *
  * author:   Colin Woodbury
  * created:  2014 October 28
- * modified: 2014 November  3 @ 21:38
- */
-
-/* TODO:
- * - Speed up/down on arrow keys (use nanosleep)
+ * modified: 2014 November  4 @ 11:49
  */
 
 #include <ncurses.h>
@@ -32,6 +28,7 @@
 
 /* GENERAL DEFINES */
 #define MAX_METALS 10
+#define TOOLS_NEEDED 2
 
 /* SHARED RESOURCES */
 // --- DOMAIN OF METAL_MUTEX --- //
@@ -86,8 +83,6 @@ void* generate_metal(void* metalwrap) {
         t.tv_sec  = 0;
         t.tv_nsec = 500000000L;  // Half a second.
 
-        getmaxyx(stdscr,y,x);
-
         while(true) {
                 while(paused) {
                         nanosleep(&t, NULL);
@@ -114,7 +109,7 @@ void* generate_metal(void* metalwrap) {
 
                 // New metal in the queue.
                 m->metal = metal;
-                TAILQ_INSERT_HEAD(&metal_head, m, nexts);
+                TAILQ_INSERT_TAIL(&metal_head, m, nexts);
                 metals_len++;
                 generated++;
                 pthread_cond_signal(&metals_empty);
@@ -130,8 +125,32 @@ void* generate_metal(void* metalwrap) {
         pthread_exit(0);
 }
 
+bool get_tool(Operator* o) {
+        pthread_mutex_lock(&tools_mutex);
+
+        // Give up our tool.
+        if(tool_counter == 0 && o->tools_taken > 0) {
+                o->tools_taken -= 1;
+                tool_counter++;
+                pthread_cond_signal(&tools_gone);
+                pthread_mutex_unlock(&tools_mutex);
+                return false;
+        }
+
+        // There aren't any tools left!
+        while(tool_counter == 0) {
+                pthread_cond_wait(&tools_gone, &tools_mutex);
+        }
+
+        // Take a tool.
+        o->tools_taken += 1;
+        tool_counter--;
+        pthread_mutex_unlock(&tools_mutex);
+        return true;
+}
+
 Metal get_metal() {
-        Metal m = Copper;  // Temporary!
+        Metal m;  // Temporary!
 
         pthread_mutex_lock(&metal_mutex);
 
@@ -140,11 +159,12 @@ Metal get_metal() {
                 pthread_cond_wait(&metals_empty, &metal_mutex);
         }
 
-        // Remove head from metal queue?
-        // (also inserting should be from the tail)
+        // Remove head from metal queue
+        m = metal_head.tqh_first->metal;
+        TAILQ_REMOVE(&metal_head, metal_head.tqh_first, nexts);
+        metals_len--;
 
         // Tell other threads there's space in the metal queue.
-        metals_len--;
         pthread_cond_signal(&metals_full);
 
         pthread_mutex_unlock(&metal_mutex);
@@ -178,6 +198,9 @@ void* operate(void* operator) {
 
                 o->metal1 = get_metal();
                 o->metal2 = get_metal();
+
+                // Take a rest.
+                nanosleep(&t, NULL);
         }
 
  error:
@@ -191,9 +214,13 @@ int run_simulation(int tools, int operators) {
         Operator* o;
         int ch      = 0;
         int time    = 0;
+        int speed   = 0;
         int x, y, i, r;
         pthread_t generator_ts[METAL_TYPES];
         pthread_t* operators_ts;
+        struct timespec t;
+        t.tv_sec  = 0;
+        t.tv_nsec = 500000000L;  // Half a second.
 
         /* Set global in-use tool counter */
         tool_counter = tools;
@@ -287,14 +314,28 @@ int run_simulation(int tools, int operators) {
                         }
 
                         break;
-                        
+
+                case KEY_UP:
+                        if(speed < 10) {
+                                t.tv_nsec /= 2;
+                                speed++;
+                        }
+                        break;
+
+                case KEY_DOWN:
+                        if(speed > 0) {
+                                t.tv_nsec *= 2;
+                                speed--;
+                        }
+                        break;
+
                 default:
                         break;
                 }
 
                 if(!paused) {
                         time++;
-                        sleep(1);
+                        nanosleep(&t, NULL);
                 }
 
                 refresh();
