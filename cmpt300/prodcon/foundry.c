@@ -24,46 +24,14 @@
 
 #include "dbg.h"
 #include "lib/bstrlib.h"
+#include "metals.h"
+#include "operator.h"
 #include "utils.h"
-
-/*
- * Useful things:
- * clear();
- * getyx(y,x);
- * move(y,x)
- * getmaxyx(stdscr,row,col);
- * Window dumping: putwin(), getwin()
- */
 
 // --- //
 
 /* GENERAL DEFINES */
 #define MAX_METALS 10
-#define METAL_TYPES 3
-
-typedef enum { NoMetal, Tin, Copper, Lead } Metal;
-
-/*
- * Tin + Copper  = Bronze
- * Tin + Lead    = Solder
- * Copper + Lead = Molybdochalkos
- */
-typedef enum { NoAlloy, Bronze, Solder, Molybdochalkos } Alloy;
-
-typedef struct {
-        int op_num;
-        int tools_taken;
-        int max_tools;
-        Metal metal1;
-        Metal metal2;
-        Alloy produced;
-} Operator;
-
-// For passing multiple arguments to a threaded function.
-typedef struct {
-        Metal metal;
-        int max_tools;  // # of tools user chose.
-} MetalWrap;
 
 /* SHARED RESOURCES */
 // --- DOMAIN OF METAL_MUTEX --- //
@@ -104,8 +72,6 @@ bool paused = false;
 
 /* Forward Declarations */
 void f_box(WINDOW*, int, int);
-Operator* operator_create(int op_num, int max_tools);
-char* metal_to_string(Metal);
 
 // --- //
 
@@ -199,6 +165,7 @@ void* operate(void* operator) {
 
         // Get two materials (one at a time).
         // Get two tools (one at a time).
+        // -- On the second try, if there are none, give up your first one.
         // Lock the queue.
         // Check if contents of output queue are ok.
         // If not, give up and put everything back.
@@ -214,32 +181,9 @@ void* operate(void* operator) {
         }
 
  error:
+        if(m) { free(m); }
+        if(a) { free(a); }
         pthread_exit(0);
-}
-
-Operator* operator_create(int op_num, int max_tools) {
-        Operator* o = malloc(sizeof(Operator));
-        check_mem(o);
-
-        o->op_num      = op_num;
-        o->tools_taken = 0;
-        o->max_tools   = max_tools;
-        o->metal1      = NoMetal;
-        o->metal2      = NoMetal;
-        o->produced    = NoAlloy;
-
-        return o;
-
- error:
-        return NULL;
-}
-
-char* metal_to_string(Metal metal) {
-        char* names[4] = {
-                "NoMetal", "Tin", "Copper", "Lead"
-        };
-
-        return names[metal];
 }
 
 int run_simulation(int tools, int operators) {
