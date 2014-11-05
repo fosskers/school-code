@@ -36,8 +36,6 @@ pthread_mutex_t metal_mutex;
 pthread_cond_t metals_full;   // The metals queue is full.
 pthread_cond_t metals_empty;  // The metals queue is empty.
 
-int generated_metals[METAL_TYPES + 1];
-
 typedef struct metals {
         Metal metal;
         TAILQ_ENTRY(metals) nexts;
@@ -45,12 +43,11 @@ typedef struct metals {
 
 TAILQ_HEAD(metalhead, metals) metal_head;
 
+int generated_metals[METAL_TYPES + 1];
 int metals_len = 0;  // Length of the Metal queue.
 
 // --- DOMAIN OF ALLOY_MUTEX --- //
 pthread_mutex_t alloy_mutex;
-
-int generated_alloys[METAL_TYPES + 1];
 
 typedef struct alloys {
         Alloy alloy;
@@ -59,7 +56,9 @@ typedef struct alloys {
 
 TAILQ_HEAD(alloyhead, alloys) alloy_head;
 
+int generated_alloys[METAL_TYPES + 1];
 int alloys_len = 0;  // Length of the Alloy queue.
+int gave_up = 0;     // Times alloy production couldn't go through.
 
 // --- DOMAIN OF TOOLS_MUTEX --- //
 pthread_mutex_t tools_mutex;
@@ -70,7 +69,7 @@ int tools_yielded = 0;  // Total yielded over time (without making an Alloy).
 
 // --- OTHER - DON'T TOUCH --- //
 bool paused = false;
-struct timespec t;
+struct timespec t;  // Controls overall speed of the system.
 
 // --- //
 
@@ -166,6 +165,8 @@ void print_alloys() {
                 mvprintw(y - METAL_TYPES - 4 + i, 1, "%s: %d",
                          alloy_name, generated_alloys[i]);
         }
+
+        mvprintw(3, 40, "Gave Up: %d", gave_up);
 }
 
 /* Return any tools the Operator has */
@@ -178,6 +179,38 @@ void return_tools(Operator* o) {
         pthread_cond_signal(&tools_gone);
 
         pthread_mutex_unlock(&tools_mutex);
+}
+
+/* Can't have a difference of more than 10 of any two alloys.
+ * Caller should have the `alloy_mutex` locked!
+ */
+bool alloy_amounts_ok(Alloy a1) {
+        Alloy a2;
+        Alloy a3;
+        bool diff1;
+        bool diff2;
+
+        switch(a1) {
+        case Bronze:
+                a2 = Solder;
+                a3 = Molybdochalkos;
+                break;
+        case Solder:
+                a2 = Bronze;
+                a3 = Molybdochalkos;
+                break;
+        case Molybdochalkos:
+                a2 = Bronze;
+                a3 = Solder;
+                break;
+        default:
+                return false;  // Run!
+        }
+
+        diff1 = generated_alloys[a1] - generated_alloys[a2] <= 10;
+        diff2 = generated_alloys[a1] - generated_alloys[a3] <= 10;
+
+        return diff1 && diff2;
 }
 
 bool get_tool(Operator* o) {
@@ -230,14 +263,7 @@ void* operate(void* operator) {
         Operator* o = (Operator*)operator;
         metals* m = NULL;
         alloys* a = NULL;
-        //        int y, x;
 
-        //        getmaxyx(stdscr,y,x);
-
-        // Check if contents of output queue are ok.
-        // If not, give up and put everything back.
-        // If so, make the alloy, put tools back, unlock queue.
-        // Repeat.
         while(true) {
                 while(paused) {
                         nanosleep(&t, NULL);
@@ -250,15 +276,32 @@ void* operate(void* operator) {
                 if(get_tool(o)) {
                         pthread_mutex_lock(&alloy_mutex);
 
-                        // Wait for varied time.
-                        nanosleep(&t, NULL);
-
                         a = malloc(sizeof(alloys));
                         check_mem(a);
                         a->alloy = make_alloy(o->metal1, o->metal2);
-                        TAILQ_INSERT_TAIL(&alloy_head, a, nexts);
-                        alloys_len += 1;
-                        generated_alloys[a->alloy] += 1;
+
+                        /*
+                         * Succeeds if:
+                         *   - It's the first alloy to be made.
+                         *   - The alloy to be made is different from the most
+                         *     recent one added.
+                         *   - Making the alloy won't throw the 10-difference
+                         *     out of balance.
+                         */
+                        if(alloys_len == 0 ||
+                           (alloy_head.tqh_first != NULL &&
+                            a->alloy != alloy_head.tqh_first->alloy &&
+                            alloy_amounts_ok(a->alloy))) {
+                                // Wait for varied time.
+                                nanosleep(&t, NULL);
+
+                                // Officially add it to queue.
+                                TAILQ_INSERT_HEAD(&alloy_head, a, nexts);
+                                alloys_len += 1;
+                                generated_alloys[a->alloy] += 1;
+                        } else {
+                                gave_up++;
+                        }
 
                         pthread_mutex_unlock(&alloy_mutex);
                 }
@@ -278,9 +321,9 @@ void* operate(void* operator) {
 int run_simulation(int tools, int operators) {
         MetalWrap* mw;
         Operator* o;
-        int ch      = 0;
-        int time    = 0;
-        int speed   = 0;
+        int ch    = 0;
+        int time  = 0;
+        int speed = 0;
         int x, y, i, r;
         pthread_t generator_ts[METAL_TYPES];
         pthread_t* operators_ts;
