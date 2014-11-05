@@ -36,6 +36,8 @@ pthread_mutex_t metal_mutex;
 pthread_cond_t metals_full;   // The metals queue is full.
 pthread_cond_t metals_empty;  // The metals queue is empty.
 
+char generated_metals[METAL_TYPES + 1];
+
 typedef struct metals {
         Metal metal;
         TAILQ_ENTRY(metals) nexts;
@@ -61,9 +63,11 @@ int alloys_len = 0;  // Length of the Alloy queue.
 pthread_mutex_t tools_mutex;
 pthread_cond_t tools_gone;  // Who took all the damn tools?
 int tool_counter = 0;
+int tools_taken  = 0;
 
 // --- OTHER - DON'T TOUCH --- //
 bool paused = false;
+struct timespec t;
 
 // --- //
 
@@ -74,14 +78,7 @@ void f_box(WINDOW*, int, int);
 
 void* generate_metal(void* metalwrap) {
         Metal metal = ((MetalWrap*)metalwrap)->metal;
-        int tools   = ((MetalWrap*)metalwrap)->max_tools;
-        const char* metal_name = metal_to_string(metal);
-        int generated = 0;
-        int y, x;
         metals* m;
-        struct timespec t;
-        t.tv_sec  = 0;
-        t.tv_nsec = 500000000L;  // Half a second.
 
         while(true) {
                 while(paused) {
@@ -89,18 +86,9 @@ void* generate_metal(void* metalwrap) {
                 }
 
                 pthread_mutex_lock(&metal_mutex);
-                
-                // Graphics
-                mvprintw(metal, 20, "%s: %d", metal_name, generated);
-                getmaxyx(stdscr,y,x);
-                attron(A_REVERSE);
-                mvprintw(y/2 - 2 + ((metal - 1) * 2), x/2 - tools - 5, "G");
-                attroff(A_REVERSE);
 
                 // The Metals queue is full!
-                while(metals_len == MAX_METALS) {
-                        mvprintw(y/2 - 2 + ((metal - 1) * 2),
-                                 x/2 - tools - 5, "G");
+                while(metals_len >= MAX_METALS) {
                         pthread_cond_wait(&metals_full, &metal_mutex);
                 }
 
@@ -111,7 +99,7 @@ void* generate_metal(void* metalwrap) {
                 m->metal = metal;
                 TAILQ_INSERT_TAIL(&metal_head, m, nexts);
                 metals_len++;
-                generated++;
+                generated_metals[metal] += 1;
                 pthread_cond_signal(&metals_empty);
 
                 pthread_mutex_unlock(&metal_mutex);
@@ -125,13 +113,63 @@ void* generate_metal(void* metalwrap) {
         pthread_exit(0);
 }
 
+void print_metals(int max_tools) {
+        int y, x, i;
+        char* metal_name;
+
+        getmaxyx(stdscr,y,x);
+
+        for(i = 1; i < METAL_TYPES + 1; i++) {
+                metal_name = metal_to_string(i);
+                mvprintw(i, 20, "%s: %d", metal_name, generated_metals[i]);
+
+                if(metals_len >= MAX_METALS) {
+                        mvprintw(y/2 - 2 + ((i - 1) * 2), x/2 - max_tools - 5, "G");
+                } else {
+                        attron(A_REVERSE);
+                        mvprintw(y/2 - 2 + ((i - 1) * 2), x/2 - max_tools - 5, "G");
+                        attroff(A_REVERSE);                
+                }
+        }
+}
+
+void print_tools(int max_tools) {
+        int y, x, i;
+
+        getmaxyx(stdscr, y, x);
+
+        for(i = 0; i < max_tools; i++) {
+                if(i < max_tools - tool_counter) {
+                        attron(A_REVERSE);
+                        mvprintw(y/2 - 4, x/2 - max_tools + (i * 2), "T");
+                        attroff(A_REVERSE);
+                } else {
+                        mvprintw(y/2 - 4, x/2 - max_tools + (i * 2), "T");
+                }
+        }
+
+        mvprintw(1, 40, "Tools Taken: %d", tools_taken);
+}
+
+/* Return any tools the Operator has */
+void return_tools(Operator* o) {
+        pthread_mutex_lock(&tools_mutex);
+
+        // Kritikal Sektion
+        tool_counter += o->tools_taken;
+        o->tools_taken = 0;
+        pthread_cond_signal(&tools_gone);
+
+        pthread_mutex_unlock(&tools_mutex);
+}
+
 bool get_tool(Operator* o) {
         pthread_mutex_lock(&tools_mutex);
 
         // Give up our tool.
         if(tool_counter == 0 && o->tools_taken > 0) {
-                o->tools_taken -= 1;
-                tool_counter++;
+                //                o->tools_taken -= 1;
+                //                tool_counter++;
                 pthread_cond_signal(&tools_gone);
                 pthread_mutex_unlock(&tools_mutex);
                 return false;
@@ -144,6 +182,7 @@ bool get_tool(Operator* o) {
 
         // Take a tool.
         o->tools_taken += 1;
+        tools_taken++;  // For testing.
         tool_counter--;
         pthread_mutex_unlock(&tools_mutex);
         return true;
@@ -174,14 +213,11 @@ Metal get_metal() {
 
 void* operate(void* operator) {
         Operator* o = (Operator*)operator;
-        metals* m;
-        alloys* a;
-        int y, x;
-        struct timespec t;
-        t.tv_sec  = 0;
-        t.tv_nsec = 500000000L;  // Half a second.
+        metals* m = NULL;
+        alloys* a = NULL;
+        //        int y, x;
 
-        getmaxyx(stdscr,y,x);
+        //        getmaxyx(stdscr,y,x);
 
         // Get two materials (one at a time).
         // Get two tools (one at a time).
@@ -198,6 +234,24 @@ void* operate(void* operator) {
 
                 o->metal1 = get_metal();
                 o->metal2 = get_metal();
+
+                get_tool(o);
+                if(get_tool(o)) {
+                        pthread_mutex_lock(&alloy_mutex);
+
+                        // Wait for varied time.
+                        sleep(1);
+
+                        a = malloc(sizeof(alloys));
+                        check_mem(a);
+                        a->alloy = make_alloy(o->metal1, o->metal2);
+                        TAILQ_INSERT_TAIL(&alloy_head, a, nexts);
+                        alloys_len += 1;
+
+                        pthread_mutex_unlock(&alloy_mutex);
+                }
+
+                return_tools(o);
 
                 // Take a rest.
                 nanosleep(&t, NULL);
@@ -218,7 +272,6 @@ int run_simulation(int tools, int operators) {
         int x, y, i, r;
         pthread_t generator_ts[METAL_TYPES];
         pthread_t* operators_ts;
-        struct timespec t;
         t.tv_sec  = 0;
         t.tv_nsec = 500000000L;  // Half a second.
 
@@ -337,7 +390,9 @@ int run_simulation(int tools, int operators) {
                         time++;
                         nanosleep(&t, NULL);
                 }
-
+                
+                print_metals(tools);
+                print_tools(tools);
                 refresh();
                 ch = getch();
         }
