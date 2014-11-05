@@ -21,6 +21,7 @@ typedef struct {
 
 /* Forward Declarations */
 char* metal_to_string(Metal);
+char* alloy_to_string(Alloy);
 Alloy make_alloy(Metal, Metal);
 
 #endif

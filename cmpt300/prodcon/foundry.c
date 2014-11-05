@@ -36,7 +36,7 @@ pthread_mutex_t metal_mutex;
 pthread_cond_t metals_full;   // The metals queue is full.
 pthread_cond_t metals_empty;  // The metals queue is empty.
 
-char generated_metals[METAL_TYPES + 1];
+int generated_metals[METAL_TYPES + 1];
 
 typedef struct metals {
         Metal metal;
@@ -50,6 +50,8 @@ int metals_len = 0;  // Length of the Metal queue.
 // --- DOMAIN OF ALLOY_MUTEX --- //
 pthread_mutex_t alloy_mutex;
 
+int generated_alloys[METAL_TYPES + 1];
+
 typedef struct alloys {
         Alloy alloy;
         TAILQ_ENTRY(alloys) nexts;
@@ -62,8 +64,9 @@ int alloys_len = 0;  // Length of the Alloy queue.
 // --- DOMAIN OF TOOLS_MUTEX --- //
 pthread_mutex_t tools_mutex;
 pthread_cond_t tools_gone;  // Who took all the damn tools?
-int tool_counter = 0;
-int tools_taken  = 0;
+int tool_counter  = 0;
+int tools_taken   = 0;  // Total taken over time.
+int tools_yielded = 0;  // Total yielded over time (without making an Alloy).
 
 // --- OTHER - DON'T TOUCH --- //
 bool paused = false;
@@ -149,6 +152,20 @@ void print_tools(int max_tools) {
         }
 
         mvprintw(1, 40, "Tools Taken: %d", tools_taken);
+        mvprintw(2, 40, "Tools Yielded: %d", tools_yielded);
+}
+
+void print_alloys() {
+        int y, x, i;
+        char* alloy_name;
+
+        getmaxyx(stdscr, y, x);
+
+        for(i = 1; i < METAL_TYPES + 1; i++) {
+                alloy_name = alloy_to_string(i);
+                mvprintw(y - METAL_TYPES - 4 + i, 1, "%s: %d",
+                         alloy_name, generated_alloys[i]);
+        }
 }
 
 /* Return any tools the Operator has */
@@ -168,9 +185,7 @@ bool get_tool(Operator* o) {
 
         // Give up our tool.
         if(tool_counter == 0 && o->tools_taken > 0) {
-                //                o->tools_taken -= 1;
-                //                tool_counter++;
-                pthread_cond_signal(&tools_gone);
+                tools_yielded += 1;
                 pthread_mutex_unlock(&tools_mutex);
                 return false;
         }
@@ -189,7 +204,7 @@ bool get_tool(Operator* o) {
 }
 
 Metal get_metal() {
-        Metal m;  // Temporary!
+        Metal m;
 
         pthread_mutex_lock(&metal_mutex);
 
@@ -219,10 +234,6 @@ void* operate(void* operator) {
 
         //        getmaxyx(stdscr,y,x);
 
-        // Get two materials (one at a time).
-        // Get two tools (one at a time).
-        // -- On the second try, if there are none, give up your first one.
-        // Lock the queue.
         // Check if contents of output queue are ok.
         // If not, give up and put everything back.
         // If so, make the alloy, put tools back, unlock queue.
@@ -240,13 +251,14 @@ void* operate(void* operator) {
                         pthread_mutex_lock(&alloy_mutex);
 
                         // Wait for varied time.
-                        sleep(1);
+                        nanosleep(&t, NULL);
 
                         a = malloc(sizeof(alloys));
                         check_mem(a);
                         a->alloy = make_alloy(o->metal1, o->metal2);
                         TAILQ_INSERT_TAIL(&alloy_head, a, nexts);
                         alloys_len += 1;
+                        generated_alloys[a->alloy] += 1;
 
                         pthread_mutex_unlock(&alloy_mutex);
                 }
@@ -390,7 +402,8 @@ int run_simulation(int tools, int operators) {
                         time++;
                         nanosleep(&t, NULL);
                 }
-                
+
+                print_alloys();
                 print_metals(tools);
                 print_tools(tools);
                 refresh();

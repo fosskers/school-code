@@ -10,6 +10,14 @@ char* metal_to_string(Metal metal) {
         return names[metal];
 }
 
+char* alloy_to_string(Alloy alloy) {
+        char* names[4] = {
+                "NoAlloy", "Bronze", "Solder", "Moly"
+        };
+
+        return names[alloy];
+}
+
 // There's probably some clever math I could do here.
 Alloy make_alloy(Metal m1, Metal m2) {
         Alloy a;
