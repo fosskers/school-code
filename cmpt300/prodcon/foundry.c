@@ -281,17 +281,25 @@ void* operate(void* operator) {
         Operator* o = (Operator*)operator;
         metals* m = NULL;
         alloys* a = NULL;
+        int rand_factor;
+        struct timespec meld_time;
+        meld_time.tv_sec = 0;
 
         while(true) {
                 while(paused) {
                         nanosleep(&t, NULL);
                 }
 
+                /* Sync alloy melding timer to global timer */
+                meld_time.tv_nsec = t.tv_nsec * 2;
+
                 o->metal1 = get_metal();
                 o->metal2 = get_metal();
 
                 get_tool(o);
                 if(get_tool(o)) {
+                        o->active = true;
+
                         pthread_mutex_lock(&alloy_mutex);
 
                         a = malloc(sizeof(alloys));
@@ -310,16 +318,15 @@ void* operate(void* operator) {
                            (alloy_head.tqh_first != NULL &&
                             a->alloy != alloy_head.tqh_first->alloy &&
                             alloy_amounts_ok(a->alloy))) {
-                                o->active = true;
-
                                 // Wait for varied time.
-                                nanosleep(&t, NULL);
+                                rand_factor = rand() % 100 + 1;
+                                meld_time.tv_nsec /= rand_factor;
+                                nanosleep(&meld_time, NULL);
 
                                 // Officially add it to queue.
                                 TAILQ_INSERT_HEAD(&alloy_head, a, nexts);
                                 alloys_len += 1;
                                 generated_alloys[a->alloy] += 1;
-                                o->active = false;
                         } else {
                                 gave_up++;
                         }
@@ -328,6 +335,7 @@ void* operate(void* operator) {
                 }
 
                 return_tools(o);
+                o->active = false;
 
                 // Take a rest.
                 nanosleep(&t, NULL);
@@ -343,7 +351,7 @@ int run_simulation(int tools, int operators) {
         MetalWrap* mw;
         Operator* o;
         int ch    = 0;
-        int time  = 0;
+        int timer = 0;
         int speed = 0;
         int x, y, i, r;
         Operator** os;  // List of operators working.
@@ -351,6 +359,9 @@ int run_simulation(int tools, int operators) {
         pthread_t* operators_ts;
         t.tv_sec  = 0;
         t.tv_nsec = 500000000L;  // Half a second.
+
+        /* Set random number seed */
+        srand(time(NULL));
 
         /* Set global in-use tool counter */
         tool_counter = tools;
@@ -424,7 +435,7 @@ int run_simulation(int tools, int operators) {
 
         /* Main event loop */
         while(ch != 'q') {
-                mvprintw(3, 1, "Time: %d", time);
+                mvprintw(3, 1, "Time: %d", timer);
 
                 // Queue lengths
                 mvprintw(y/2, x/2 - 3, "[ %02d ]", metals_len);
@@ -465,7 +476,7 @@ int run_simulation(int tools, int operators) {
                 }
 
                 if(!paused) {
-                        time++;
+                        timer++;
                 }
 
                 nanosleep(&t, NULL);

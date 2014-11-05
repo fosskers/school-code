@@ -33,7 +33,8 @@ Generators (on left) are highlighted green when they are actively producing.
 
 Tools (on top) are highlighted yellow when they are "in use".
 
-Operators (on right) are highlighted red when they successfully meld an Alloy.
+Operators (on right) are highlighted red when they have metals, two tools, and
+are trying to make something.
 
 *Tools Yielded* refers to the number of times an Operator had one tool, went
 for another, realized there were none, and gave his up to avoid deadlock.
@@ -47,5 +48,3 @@ Key Bindings
 * Press down to slow down the simulation.
 * Press p to pause.
 * Press q to quit the simulation.
-
-
