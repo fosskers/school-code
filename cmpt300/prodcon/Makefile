@@ -1,4 +1,4 @@
-TARGET=foundry
+TARGET=hw2
 WARNINGS=-Wall -Wshadow -Wunreachable-code
 CFLAGS=$(WARNINGS) -g -O -fdiagnostics-color -DNDEBUG
 LDFLAGS=-lncurses -pthread
@@ -11,7 +11,7 @@ all: default
 %.o: %.c $(HEADERS)
 	gcc $(CFLAGS) -c $< -o $@
 
-foundry: $(OBJECTS)
+hw2: $(OBJECTS)
 	gcc $(OBJECTS) $(CFLAGS) $(LDFLAGS) -o $@
 
 clean:

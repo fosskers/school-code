@@ -1,0 +1,138 @@
+\documentclass[titlepage]{article}
+
+% GENERAL
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{setspace,graphicx,fancyhdr,hyperref,amsmath,tikz,epigraph}
+\usepackage{listings,enumitem}
+\usepackage{framed}
+\usepackage[utf8]{inputenc}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+% LANGUAGE
+\lstdefinelanguage{c}{
+  morekeywords={for,while,NULL,struct},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+% Default settings for code listings
+\lstset{frame=tb,
+  language=c,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% DOCUMENT
+\begin{document}
+
+\title{CMPT 300 Assignment 2 - The Foundry}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+\section{Design Discussion}
+
+\subsection{Threads}
+The Foundry has a main thread, three Generator threads, and a number of
+Operator threads, depending on how many the user specified.
+
+\subsubsection{nCurses - Avoiding Race Conditions}
+It turns out that certain nCurses functions aren't thread safe.
+In particular, functions like:
+
+\begin{lstlisting}
+mvprintw(y, x, "FooBar");
+\end{lstlisting}
+
+which access some master cursor position, can cause race conditions
+if called in multiple threads. Characters will render where they aren't
+supposed to and generally globber the animation. The solution to this
+is to limit calls like this to the main thread.
+
+\subsection{Mutexes and Avoiding Deadlock}
+The Foundry has three main bodies of shared resources, and mutexes to manage
+each of them. Below only the mutexes and their thread sleep conditions are
+listed. See source code for other shared resources.
+
+\subsubsection{Metals Resources}
+\begin{lstlisting}
+pthread_mutex_t metal_mutex;
+pthread_cond_t metals_full;   // The metals queue is full.
+pthread_cond_t metals_empty;  // The metals queue is empty.
+\end{lstlisting}
+
+\begin{itemize}
+  \item Only one Generator can place a metal in the queue at a time.
+  \item Generator threads will sleep with the \emph{metals\_full} condition
+    when the metals queue has reached its maximum capacity.
+  \item Operators trying to obtain metals will sleep with the
+    \emph{metals\_empty} condition when there aren't any available.
+\end{itemize}
+
+\subsubsection{Tools Resources}
+\begin{lstlisting}
+pthread_mutex_t tools_mutex;
+pthread_cond_t tools_gone;  // Who took all the damn tools?
+\end{lstlisting}
+
+Here, we use a shared \emph{tool\_counter} to indicate how many tools
+are still available (instead of using some \emph{Tool} struct and passing
+it to the Operator).
+Paired with the mutex above this makes for a good pseudo-semaphore.
+
+\begin{itemize}
+  \item Only one Operator can attempt to take a tool at a time.
+  \item Operators can only take one tool at a time.
+  \item If an Operator has no tools and wants one, he will wait with
+    the \emph{tools\_gone} condition.
+  \item \textbf{To avoid Dining Philosophers}: If an Operator has one tool
+    and attempts to take another, but finds none, he will give his
+    first tool up.
+\end{itemize}
+
+\subsubsection{Alloys Resources}
+\begin{lstlisting}
+pthread_mutex_t alloy_mutex;
+\end{lstlisting}
+
+\begin{itemize}
+  \item Only one Operator can put an Alloy in the output queue at a time.
+  \item If the Alloy an Operator would make is the same as the most recent
+    one made, he will give up and put back the resources he took.
+  \item If the Alloy an Operator would make would throw off the
+    ``10-difference'' constraint, he will give up and put back the resources
+    he took.
+\end{itemize}
+
+\subsubsection{Other Resources}
+\begin{lstlisting}
+bool paused = false;
+struct timespec t;  // Controls overall speed of the system.
+\end{lstlisting}
+
+These values are global and are read by every thread to control the
+execution speed of the simulation. 
+They are only written
+to by the main thread, although there is no mutex protecting them (bad?).
+
+\end{document}
