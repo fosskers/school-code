@@ -12,7 +12,7 @@ char* metal_to_string(Metal metal) {
 
 char* alloy_to_string(Alloy alloy) {
         char* names[4] = {
-                "NoAlloy", "Bronze", "Solder", "Moly"
+                "NoAlloy", "Bronze", "Solder", "Molybdochalkos"
         };
 
         return names[alloy];

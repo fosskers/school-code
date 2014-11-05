@@ -5,7 +5,7 @@
  *
  * author:   Colin Woodbury
  * created:  2014 October 28
- * modified: 2014 November  4 @ 11:49
+ * modified: 2014 November  4 @ 19:37
  */
 
 #include <ncurses.h>
@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include "dbg.h"
-#include "lib/bstrlib.h"
 #include "metals.h"
 #include "operator.h"
 #include "utils.h"
@@ -128,9 +127,9 @@ void print_metals(int max_tools) {
                 if(metals_len >= MAX_METALS) {
                         mvprintw(y/2 - 2 + ((i - 1) * 2), x/2 - max_tools - 5, "G");
                 } else {
-                        attron(A_REVERSE);
+                        attron(A_REVERSE | COLOR_PAIR(4));
                         mvprintw(y/2 - 2 + ((i - 1) * 2), x/2 - max_tools - 5, "G");
-                        attroff(A_REVERSE);                
+                        attroff(A_REVERSE | COLOR_PAIR(4));
                 }
         }
 }
@@ -142,9 +141,9 @@ void print_tools(int max_tools) {
 
         for(i = 0; i < max_tools; i++) {
                 if(i < max_tools - tool_counter) {
-                        attron(A_REVERSE);
+                        attron(A_REVERSE | COLOR_PAIR(2));
                         mvprintw(y/2 - 4, x/2 - max_tools + (i * 2), "T");
-                        attroff(A_REVERSE);
+                        attroff(A_REVERSE | COLOR_PAIR(2));
                 } else {
                         mvprintw(y/2 - 4, x/2 - max_tools + (i * 2), "T");
                 }
@@ -167,6 +166,25 @@ void print_alloys() {
         }
 
         mvprintw(3, 40, "Gave Up: %d", gave_up);
+}
+
+void print_operators(Operator* os[], int max_tools, int operators) {
+        int y, x, i;
+
+        getmaxyx(stdscr, y, x);
+
+        // Display Operators
+        for(i = 0; i < operators; i++) {
+                if(os[i]->active) {
+                        attron(A_REVERSE | COLOR_PAIR(3));
+                        mvprintw(y/2 - operators + (i * 2) + 1,
+                                 x/2 + max_tools + 4, "O");
+                        attroff(A_REVERSE | COLOR_PAIR(3));
+                } else {
+                        mvprintw(y/2 - operators + (i * 2) + 1,
+                                 x/2 + max_tools + 4, "O");
+                }
+        }
 }
 
 /* Return any tools the Operator has */
@@ -292,6 +310,8 @@ void* operate(void* operator) {
                            (alloy_head.tqh_first != NULL &&
                             a->alloy != alloy_head.tqh_first->alloy &&
                             alloy_amounts_ok(a->alloy))) {
+                                o->active = true;
+
                                 // Wait for varied time.
                                 nanosleep(&t, NULL);
 
@@ -299,6 +319,7 @@ void* operate(void* operator) {
                                 TAILQ_INSERT_HEAD(&alloy_head, a, nexts);
                                 alloys_len += 1;
                                 generated_alloys[a->alloy] += 1;
+                                o->active = false;
                         } else {
                                 gave_up++;
                         }
@@ -325,6 +346,7 @@ int run_simulation(int tools, int operators) {
         int time  = 0;
         int speed = 0;
         int x, y, i, r;
+        Operator** os;  // List of operators working.
         pthread_t generator_ts[METAL_TYPES];
         pthread_t* operators_ts;
         t.tv_sec  = 0;
@@ -360,11 +382,15 @@ int run_simulation(int tools, int operators) {
         }
 
         /* Create Operator threads */
-        operators_ts = malloc(sizeof(Operator) * operators);
+        os = malloc(sizeof(Operator*) * operators);
+        check_mem(os);
+        operators_ts = malloc(sizeof(pthread_t) * operators);
         check_mem(operators_ts);
         for(i = 0; i < operators; i++) {
                 o = operator_create(i, tools);
                 check(o != NULL, "Failed to create an Operator.");
+
+                os[i] = o;
 
                 r = pthread_create(&operators_ts[i],
                                    NULL,
@@ -382,16 +408,13 @@ int run_simulation(int tools, int operators) {
 
         /* Display initial graphics */
         getmaxyx(stdscr, y, x);
-        
-        // Display Tools
-        for(i = 0; i < tools; i++) {
-                mvprintw(y/2 - 4, x/2 - tools + (i * 2), "T");
-        }
 
+        /*
         // Display Operators
         for(i = 0; i < operators; i++) {
                 mvprintw(y/2 - operators + (i * 2) + 1, x/2 + tools + 4, "O");
         }
+        */
         
         // Input Queue
         for(i = 0; i < tools; i++) {
@@ -443,9 +466,11 @@ int run_simulation(int tools, int operators) {
 
                 if(!paused) {
                         time++;
-                        nanosleep(&t, NULL);
                 }
 
+                nanosleep(&t, NULL);
+
+                print_operators(os, tools, operators);
                 print_alloys();
                 print_metals(tools);
                 print_tools(tools);
@@ -453,9 +478,13 @@ int run_simulation(int tools, int operators) {
                 ch = getch();
         }
 
+        // Free a bunch of things here.
+
         return EXIT_SUCCESS;
 
  error:
+        // ...and here.
+
         return EXIT_FAILURE;
 }
 
@@ -479,6 +508,7 @@ int main(int argc, char** argv) {
         init_pair(1, COLOR_CYAN, COLOR_BLACK);
         init_pair(2, COLOR_YELLOW, COLOR_BLACK);
         init_pair(3, COLOR_RED, COLOR_BLACK);
+        init_pair(4, COLOR_GREEN, COLOR_BLACK);
 
         /* Intro screen */
         f_box(stdscr, 0, 0);
