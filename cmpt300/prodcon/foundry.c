@@ -28,6 +28,7 @@
 /* GENERAL DEFINES */
 #define MAX_METALS 10
 #define TOOLS_NEEDED 2
+#define HALF_SECOND 500000000L
 
 /* SHARED RESOURCES */
 // --- DOMAIN OF METAL_MUTEX --- //
@@ -354,11 +355,13 @@ int run_simulation(int tools, int operators) {
         int timer = 0;
         int speed = 0;
         int x, y, i, r;
-        Operator** os;  // List of operators working.
+        Operator** os = NULL;  // List of operators working.
         pthread_t generator_ts[METAL_TYPES];
-        pthread_t* operators_ts;
+        pthread_t* operators_ts = NULL;
+        struct timespec refresh_timer;
+        refresh_timer.tv_sec = 0;
         t.tv_sec  = 0;
-        t.tv_nsec = 500000000L;  // Half a second.
+        t.tv_nsec = HALF_SECOND;
 
         /* Set random number seed */
         srand(time(NULL));
@@ -479,7 +482,8 @@ int run_simulation(int tools, int operators) {
                         timer++;
                 }
 
-                nanosleep(&t, NULL);
+                refresh_timer.tv_nsec = t.tv_nsec / 2;
+                nanosleep(&refresh_timer, NULL);
 
                 print_operators(os, tools, operators);
                 print_alloys();
@@ -489,12 +493,31 @@ int run_simulation(int tools, int operators) {
                 ch = getch();
         }
 
-        // Free a bunch of things here.
+        // Memory please.
+        if(mw) { free(mw); }
+        if(os) {
+                for(i = 0; i < operators; i++) {
+                        if(os[i]) {
+                                free(os[i]);
+                        }
+                }
+                free(os);
+        }
+        if(operators_ts) { free(operators_ts); }
 
         return EXIT_SUCCESS;
 
  error:
-        // ...and here.
+        if(mw) { free(mw); }
+        if(os) {
+                for(i = 0; i < operators; i++) {
+                        if(os[i]) {
+                                free(os[i]);
+                        }
+                }
+                free(os);
+        }
+        if(operators_ts) { free(operators_ts); }
 
         return EXIT_FAILURE;
 }

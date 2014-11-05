@@ -24,7 +24,7 @@ Press any key to advance from the Welcome screen.
 You will be asked how many Tools and Operators you want in the simulation.
 The minimum number of Tools is 2, and of Operators is 1. You will be kicked
 out of The Foundry if you give invalid values.
-
+n
 The Simulation
 --------------
 All relevant data is shown around the edges of the screen.
@@ -39,8 +39,8 @@ are trying to make something.
 *Tools Yielded* refers to the number of times an Operator had one tool, went
 for another, realized there were none, and gave his up to avoid deadlock.
 
-*Gave Up* refers to the number of times an Operator went to meld a certain Alloy,
-realized the output queue constraints wouldn't allow it, and gave up.
+*Gave Up* refers to the number of times an Operator went to meld a certain
+Alloy, realized the output queue constraints wouldn't allow it, and gave up.
 
 Key Bindings
 ------------
