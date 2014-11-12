@@ -91,13 +91,11 @@ public class a3 {
         try {
             JAXBContext context = JAXBContext.newInstance(Customers.class);
             Marshaller m = context.createMarshaller();
-            //for pretty-print XML in JAXB
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-            m.marshal(customers, System.out);
+            //            m.marshal(customers, System.out);
 
-            // Write to File
-            //m.marshal(emp, new File(FILE_NAME));
+            m.marshal(customers, new File(filename));
         } catch (JAXBException e) {
             e.printStackTrace();
         }
