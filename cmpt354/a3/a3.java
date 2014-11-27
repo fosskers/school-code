@@ -93,8 +93,6 @@ public class a3 {
             Marshaller m = context.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-            //            m.marshal(customers, System.out);
-
             m.marshal(customers, new File(filename));
         } catch (JAXBException e) {
             e.printStackTrace();

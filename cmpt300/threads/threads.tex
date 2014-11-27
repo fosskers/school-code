@@ -1,0 +1,225 @@
+\documentclass[titlepage]{article}
+
+% GENERAL
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{setspace,graphicx,fancyhdr,hyperref,amsmath,tikz,epigraph}
+\usepackage{listings,enumitem}
+\usepackage{framed}
+\usepackage[utf8]{inputenc}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+% LANGUAGE
+\lstdefinelanguage{c}{
+  morekeywords={for,while,NULL,struct,bool},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+% Default settings for code listings
+\lstset{frame=tb,
+  language=c,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% DOCUMENT
+\begin{document}
+
+\title{CMPT 300 Assignment 3 \\ Solving Producer-Consumer with a Non-blocking
+Circular Queue}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% Discuss a solution to the producer-consumer problem using POSIX threads.
+% In particular, show how to avoid unbounded blocking.  Also, discuss
+% circular buffers in this context.
+
+% http://www.codeproject.com/Articles/153898/Yet-another-implementation-of-a-lock-free-circular
+
+\section{Typical Blocking Solutions}
+One solution to the Prod-Con problem is to protect read/write access to
+the buffer via some mutex, and signal the buffer's state between threads
+with conditions:
+
+\begin{lstlisting}
+// What a great idea
+pthread_mutex_t buffer_mutex;
+pthread_cond_t buffer_full;
+pthread_cond_t buffer_empty;
+
+// Lower in the code
+void* produce(void* ptr) {
+  while(true) {
+    pthread_mutex_lock(&buffer_mutex);
+
+    // The buffer is full!
+    while(buffer_len >= BUFFER_MAX) {
+      pthread_cond_wait(&buffer_full, &buffer_mutex);
+    }
+
+    // Do work
+  }
+}
+\end{lstlisting}
+
+A side-effect of the blocking approach is that threads cannot read/write
+simultaneously. As blocking can cause a thread to be taken off the
+processor, there is also the risk of an increase in cache page faults.
+Depending on the amount of produces and consumers, and the size of the
+buffer, threads risk spending more time waking up and sleeping again than
+they do actually performing work.
+
+\section{Non-blocking Circular Queue}
+Fortunately there is a way to reduce contention between threads. If we use
+a non-blocking circular queue, we can free ourselves from the problems listed
+above.
+
+\subsection{The Queue}
+\begin{lstlisting}
+#define BUFFER_MAX 10
+#define elem_t int  // Could be any type.
+
+elem_t buffer[BUFFER_MAX];  
+\end{lstlisting}
+
+Our buffer is implemented with a normal array.
+Its behaviour however is circular in essense, as we \emph{mod} most operations by
+\emph{BUFFER\_MAX}, as seen in the following function:
+\begin{lstlisting}
+  bool queue_full_empty(int i1, int i2) {
+        // Test the proximity of the two indexes
+        return i1 % BUFFER_MAX == i2 % BUFFER_MAX;
+}
+\end{lstlisting}
+
+\subsection{Other Global Resources}
+The following are global data not protected by any mutex:
+
+\begin{lstlisting}
+// Read/write index management
+int wIndex = 0;  // Where are we trying to write to?
+int rIndex = 0;  // Where can we read from?
+int maxRIndex = 0;  // How far have we written? Gives us thread safety.
+\end{lstlisting}
+
+\subsection{Advancing the Indices}
+Here we utilize a handy \emph{atomic} function provided by GCC:
+
+\begin{lstlisting}
+/* ATOMICALLY compares/swaps values. Important for avoiding races. */
+#define swap(p, old, new) __sync_bool_compare_and_swap(p, old, new)
+\end{lstlisting}
+It saves \emph{new} to \emph{p} if the current value of \emph{p} is \emph{old}.
+
+\subsection{Writing to the Buffer}
+\begin{lstlisting}
+bool queue_push(const elem_t elem) {
+        int currWIndex;
+        int currRIndex;
+
+        // (1) Reserve a spot to write to.
+        while(true) {
+                currWIndex = wIndex;
+                currRIndex = rIndex;
+
+                // (2) This is how we know there is space.
+                if(queue_full_empty(currWIndex + 1, currRIndex)) {
+                        return false;  // Couldn't push.
+                }
+
+                // (3) Swaps the value of wIndex with the third arg if it's
+                // equal to the second.
+                if(swap(&wIndex, currWIndex, currWIndex + 1)) {
+                        break;
+                }
+        }
+
+        // (4) The actual push.
+        buffer[currWIndex % BUFFER_MAX] = elem;
+
+        // (5) As we've written a value, we can advance the `read` index.
+        while(!swap(&maxRIndex, currWIndex, currWIndex + 1)) {}
+
+        return true;
+}  
+\end{lstlisting}
+\begin{enumerate}
+\item We start by ``reserving'' a spot in the buffer to write to.
+\item We know space is available if the two indices aren't overlapping.
+\item Since there is space, we tell other threads we've reserved a spot. This
+  operation is atomic, so no other thread could ever advance the write index
+  before us essentially ``stealing our spot''.
+\item Write the given value to the buffer. We know this is a safe insert.
+\item Tell other threads there is more space to read from.
+\end{enumerate}
+
+\subsection{Reading from the Buffer}
+\begin{lstlisting}
+  bool queue_pop(elem_t* elem) {
+        int currRIndex;
+        int currMaxRIndex;
+    
+        while(true) {
+                currRIndex = rIndex;
+                currMaxRIndex = maxRIndex;
+
+                // (1) Is there anything to pop?
+                if(queue_full_empty(currRIndex, currMaxRIndex)) {
+                        return false;  // Queue empty.
+                }
+
+                // (2) The actual pop.
+                *elem = buffer[currRIndex % BUFFER_MAX];
+
+                // (3) Update read index and leave.
+                if(swap(&rIndex, currRIndex, currRIndex + 1)) {
+                        return true;
+                }
+        }
+}
+\end{lstlisting}
+Slightly simpler than the push operation.
+\begin{enumerate}
+\item We test if there is anything to read. If we've read as far as we've written,
+  then there won't be.
+\item We know we're the only ones popping at this index. If we aren't, the
+  comparison at (3) will fail and we'll loop around to try again.
+\item This seals the read. No one else can read from the old location.
+\end{enumerate}
+
+\subsection{Conclusions}
+The benefits of this approach are:
+\begin{itemize}
+\item We avoid overhead from thread management since no blocking is involved.
+\item Our cache remains (more) intact as threads aren't constantly slept
+  and awoken.
+\item We avoid race conditions by using an atomic comparison/swap operation
+  and the \emph{maxRIndex} value.
+\item We avoid heap allocation by using an array as our queue.
+\end{itemize}
+
+Full source code is available in a repo of mine here:\\
+\url{https://github.com/fosskers/playground/blob/master/c/threads/nonblocking_queue.c}
+
+\end{document}
