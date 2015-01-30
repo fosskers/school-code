@@ -17,7 +17,7 @@ module Decrypt where
 
 import           Control.Lens
 import           Control.Monad
-import           Data.List (sort,sortBy)
+import           Data.List (sort,sortBy,nub)
 import qualified Data.Map.Lazy as M
 import           Data.Monoid
 import qualified Data.Set as S
@@ -56,11 +56,14 @@ pairsL f (M p d) = fmap (\p' -> M p' d) $ f p
 ---
 
 -- | Given a Set of English words, how much real English is present
--- in the text? Yields a value from [0,1).
+-- in the text?
 accuracy :: S.Set Text -> Text -> Float
-accuracy s t = fil t'' / fil t'
+accuracy s t = sco * tot
   where t'  = T.words t
         t'' = filter (`S.member` s) t'
+        f w = 2 ^ (T.length w - 1)
+        sco = sum . map f . nub $ t''
+        tot = fil t'' / fil t'
         fil = fromIntegral . length
 
 -- | Given a Mapping, tries to decrypt the cipher text.
@@ -71,19 +74,20 @@ decrypt t m = fmap T.pack . mapM f . T.unpack . T.unwords . T.lines $ t
         m'    = M.fromList $ m ^.. pairsL . traverse . pairL
 
 allMappings :: StdGen -> Int -> [Letter] -> [Pair] -> [Mapping]
-allMappings g n ls as = f g [1..n]
-  where lsLen = length ls
-        f _ [] = []
-        f g' (_:ns) = 
-          let ls' = shuffle' ls lsLen g'
-              ps  = fst $ foldl allMappings' ([],[]) ls'
-              d   = sum $ ps ^.. traverse . targetL . _2
-          in M (as ++ ps) d : f (snd $ next g') ns
+allMappings g n ls as = allMs g [1..n] ls as
 
-allMappings' :: ([Pair],[Char]) -> Letter -> ([Pair],[Char])
-allMappings' (acc,u) l = (P (lLetter l) c : acc, fst c : u)
-  where l' = l & potentialL %~ filter (flip notElem u . fst)
-        c  = l' ^. potentialL . to head
+allMs :: StdGen -> [Int] -> [Letter] -> [Pair] -> [Mapping]
+allMs _ [] _ _ = []
+allMs g (_:ns) ls as = M (as ++ ps) d : allMs (snd $ next g) ns ls as
+  where ls' = shuffle' ls len g
+        ps  = fst $ foldl f ([],[]) ls'
+        d   = sum $ ps ^.. traverse . targetL . _2
+        len = length ls
+        f (acc,u) l =
+          let l' = l & potentialL %~ filter (flip notElem u . fst)
+              cs = l' ^. potentialL . to (take ((length as `div` 2) + 1))
+              c  = head $ shuffle' cs (length cs) g
+          in (P (lLetter l) c : acc, fst c : u)
 
 -- `cs` and `rs` need the same length.
 letters :: [Frequency] -> [Frequency] -> [Letter]
