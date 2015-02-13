@@ -66,6 +66,11 @@ accuracy s t = sco * tot
         tot = fil t'' / fil t'
         fil = fromIntegral . length
 
+-- TODO: Make this return a `Decryption` type with Accuracy
+-- and longest matched word included.
+-- This is so that the result of this can be piped into
+-- another version of the algorithm that guesses based on word hints.
+-- (a la Colossus).
 -- | Given a Mapping, tries to decrypt the cipher text.
 decrypt :: Text -> Mapping -> Maybe Text
 decrypt t m = fmap T.pack . mapM f . T.unpack . T.unwords . T.lines $ t
@@ -85,7 +90,8 @@ allMs g (_:ns) ls as = M (as ++ ps) d : allMs (snd $ next g) ns ls as
         len = length ls
         f (acc,u) l =
           let l' = l & potentialL %~ filter (flip notElem u . fst)
-              cs = l' ^. potentialL . to (take ((length as `div` 2) + 1))
+              cs = l' ^. potentialL . to (take 3)
+              tf = floor (sqrt (fromIntegral $ length as)) + 1
               c  = head $ shuffle' cs (length cs) g
           in (P (lLetter l) c : acc, fst c : u)
 
