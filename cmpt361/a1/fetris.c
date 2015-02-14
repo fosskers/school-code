@@ -13,6 +13,8 @@
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
+GLuint gVAO;
+GLuint gVBO;
 
 // --- //
 
@@ -26,6 +28,69 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
         }
+}
+
+/* Initialize the Grid */
+// Insert TRON pun here.
+void grid() {
+        GLfloat gridPoints[320];  // Contains colour info as well.
+        int i;
+
+        debug("Initializing Grid.");
+
+        // Vertical lines
+	for (i = 0; i < 11; i++){
+                // Bottom coord
+		gridPoints[10*i]     = 33.0 + (33.0 * i);
+                gridPoints[10*i + 1] = 33.0;
+                // Bottom colour
+                gridPoints[10*i + 2] = 1;
+                gridPoints[10*i + 3] = 1;
+                gridPoints[10*i + 4] = 1;
+                // Top coord
+		gridPoints[10*i + 5] = 33.0 + (33.0 * i);
+                gridPoints[10*i + 6] = 693.0;
+                // Top colour
+                gridPoints[10*i + 7] = 1;
+                gridPoints[10*i + 8] = 1;
+                gridPoints[10*i + 9] = 1;
+	}
+
+	// Horizontal lines
+	for (i = 0; i < 21; i++){
+                // Left coord
+		gridPoints[110 + 10*i]     = 33.0;
+                gridPoints[110 + 10*i + 1] = 33.0 + (33.0 * i);
+                // Left colour
+                gridPoints[110 + 10*i + 2] = 1;
+                gridPoints[110 + 10*i + 3] = 1;
+                gridPoints[110 + 10*i + 4] = 1;
+                // Right coord
+		gridPoints[110 + 10*i + 5] = 363.0;
+                gridPoints[110 + 10*i + 6] = 33.0 + (33.0 * i);
+                // Right colour
+                gridPoints[110 + 10*i + 7] = 1;
+                gridPoints[110 + 10*i + 8] = 1;
+                gridPoints[110 + 10*i + 9] = 1;
+	}
+
+        // Set up VAO/VBO
+        glGenVertexArrays(1,&gVAO);
+        glBindVertexArray(gVAO);
+        glGenBuffers(1,&gVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(gridPoints),gridPoints,GL_STATIC_DRAW);
+
+        // Tell OpenGL how to process Grid Vertices
+        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),
+                              (GLvoid*)(2 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(0);  // Reset the VAO binding.
 }
 
 int main(int argc, char** argv) {
@@ -54,36 +119,16 @@ int main(int argc, char** argv) {
         glEnable(GL_DEPTH_TEST);
         
         // Create Shader Program
-        log_info("Making shader program.");
+        debug("Making shader program.");
         shaders_t* shaders = cogsShaders("vertex.glsl", "fragment.glsl");
         GLuint shaderProgram = cogsProgram(shaders);
         cogsDestroy(shaders);
         check(shaderProgram > 0, "Shaders didn't compile.");
+        debug("Shaders good.");
 
-        /*
-        // Vertex Array
-        GLuint VAO;
-        glGenVertexArrays(1,&VAO);
-
-        // Vertex buffer for our data
-        GLuint VBO;
-        glBindVertexArray(VAO);  // VAO!
-        glGenBuffers(1,&VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(verts),verts,GL_STATIC_DRAW);
+        // Initialize Grid
+        grid();
         
-        // Tell OpenGL how to process Vertex data.
-        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),(GLvoid*)0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),
-                              (GLvoid*)(3 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(1);
-
-        glBindVertexArray(0);  // Reset the VAO binding.
-        */
-
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
                 glfwPollEvents();
@@ -93,10 +138,10 @@ int main(int argc, char** argv) {
 
                 glUseProgram(shaderProgram);
 
-                /*
-                glBindVertexArray(VAO);
+                // Draw Grid
+                glBindVertexArray(gVAO);
+                glDrawArrays(GL_LINES, 0, 64);
                 glBindVertexArray(0);
-                */
 
                 // Always comes last.
                 glfwSwapBuffers(w);
