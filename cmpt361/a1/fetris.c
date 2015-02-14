@@ -7,6 +7,7 @@
 
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
+#include "cog/camera/camera.h"
 
 // --- //
 
@@ -16,11 +17,36 @@ GLuint wHeight = 720;
 GLuint gVAO;
 GLuint gVBO;
 
+camera_t* camera;
+matrix_t* view;
+
 // --- //
+
+void moveCamera() {
+        cogcMove(camera,
+                 keys[GLFW_KEY_W],
+                 keys[GLFW_KEY_S],
+                 keys[GLFW_KEY_A],
+                 keys[GLFW_KEY_D]);
+}
+
+/* Init/Reset the Camera */
+void resetCamera() {
+        GLfloat camFS[] = {0,0,4};
+        matrix_t* camPos = coglVFromArray(3,camFS);
+        camFS[0] = 0; camFS[1] = 0; camFS[2] = -1;
+        matrix_t* camDir = coglVFromArray(3,camFS);
+        camFS[0] = 0; camFS[1] = 1; camFS[2] = 0;
+        matrix_t* camUp = coglVFromArray(3,camFS);
+
+        camera = cogcCreate(camPos,camDir,camUp);
+}
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(w, GL_TRUE);
+        } else if(key == GLFW_KEY_R && action == GLFW_PRESS) {
+                resetCamera();
         }
 
         if(action == GLFW_PRESS) {
@@ -28,6 +54,10 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
         }
+}
+
+void mouse_callback(GLFWwindow * w, double xpos, double ypos) {
+        cogcPan(camera,xpos,ypos);
 }
 
 /* Initialize the Grid */
@@ -114,6 +144,8 @@ int main(int argc, char** argv) {
 
         // Register callbacks.
         glfwSetKeyCallback(w, key_callback);
+        glfwSetInputMode(w,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+        glfwSetCursorPosCallback(w,mouse_callback);
 
         // Depth Testing
         glEnable(GL_DEPTH_TEST);
@@ -128,16 +160,34 @@ int main(int argc, char** argv) {
 
         // Initialize Grid
         grid();
+
+        resetCamera();
+        
+        // Projection Matrix
+        matrix_t* proj = coglMPerspectiveP(tau/8, 
+                                           (float)wWidth/(float)wHeight,
+                                           0.1f,1000.0f);
         
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
                 glfwPollEvents();
+                moveCamera();
                 
                 glClearColor(0.0f,0.0f,0.0f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 glUseProgram(shaderProgram);
 
+                GLuint viewLoc = glGetUniformLocation(shaderProgram,"view");
+                GLuint projLoc = glGetUniformLocation(shaderProgram,"proj");
+
+                // Update View Matrix
+                coglMDestroy(view);
+                view = coglM4LookAtP(camera->pos,camera->tar,camera->up);
+                
+                glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
+                glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
+                
                 // Draw Grid
                 glBindVertexArray(gVAO);
                 glDrawArrays(GL_LINES, 0, 64);
