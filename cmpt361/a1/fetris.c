@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "block.h"
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
 #include "cog/camera/camera.h"
@@ -14,14 +15,20 @@
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
+
+// Buffer Objects
 GLuint gVAO;
 GLuint gVBO;
+GLuint bVAO;
+GLuint bVBO;
 
 camera_t* camera;
 matrix_t* view;
+block_t*  block;  // The Tetris block.
 
 // --- //
 
+/* Move Camera with WASD */
 void moveCamera() {
         cogcMove(camera,
                  keys[GLFW_KEY_W],
@@ -45,7 +52,7 @@ void resetCamera() {
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(w, GL_TRUE);
-        } else if(key == GLFW_KEY_R && action == GLFW_PRESS) {
+        } else if(key == GLFW_KEY_C && action == GLFW_PRESS) {
                 resetCamera();
         }
 
@@ -56,13 +63,48 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         }
 }
 
-void mouse_callback(GLFWwindow * w, double xpos, double ypos) {
+void mouse_callback(GLFWwindow* w, double xpos, double ypos) {
         cogcPan(camera,xpos,ypos);
+}
+
+/* Produce locations and colours based on the current global Block */
+GLfloat* blockToCoords() {
+        int i;
+        GLfloat* cs = malloc(sizeof(GLfloat) * 16 * 5);
+        check_mem(cs);
+
+        //        for(i )
+        
+        return cs;
+ error:
+        return NULL;
+}
+
+/* Initialize the Block */
+int initBlock() {
+        block = randBlock();
+        check(block, "Failed to initialize first Block.");
+        debug("Got a: %c", block->name);
+
+        debug("Initializing Block.");
+
+        /*
+        // Set up VAO/VBO
+        glGenVertexArrays(1,&bVAO);
+        glBindVertexArray(bVAO);
+        glGenBuffers(1,&bVBO);
+        glBindBuffer(GL_ARRAY_BUFFER,bVBO);
+        glBufferData(GL_ARRAY_BUFFER); //TODO!
+        */
+
+        return 1;
+ error:
+        return 0;
 }
 
 /* Initialize the Grid */
 // Insert TRON pun here.
-void grid() {
+void initGrid() {
         GLfloat gridPoints[320];  // Contains colour info as well.
         int i;
 
@@ -158,8 +200,9 @@ int main(int argc, char** argv) {
         check(shaderProgram > 0, "Shaders didn't compile.");
         debug("Shaders good.");
 
-        // Initialize Grid
-        grid();
+        // Initialize Grid and first Block
+        initGrid();
+        quiet_check(initBlock());
 
         resetCamera();
         
