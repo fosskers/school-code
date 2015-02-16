@@ -77,6 +77,12 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         resetCamera();
                 } else if(key == GLFW_KEY_R) {
                         resetGame();
+                } else if(key == GLFW_KEY_LEFT && block->x > 0) {
+                        block->x -= 1;
+                } else if(key == GLFW_KEY_RIGHT && block->x < 19) {
+                        block->x += 1;
+                } else if(key == GLFW_KEY_DOWN && block->y > 0) {
+                        block->y -= 1;
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -299,17 +305,24 @@ void initGrid() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void moveBlock() {
-        if(block->y > 0) {
-                block->y -= 1;
+/* Scrolls the Block naturally down */
+void scrollBlock() {
+        static double lastTime = 0;
+        double currTime = glfwGetTime();
 
-                GLfloat* coords = blockToCoords();
+        if(block->y > 0) {
+                if(currTime - lastTime > 1) {
+                        lastTime = currTime;
+                        block->y -= 1;
+
+                        GLfloat* coords = blockToCoords();
         
-                glBindVertexArray(bVAO);
-                glBindBuffer(GL_ARRAY_BUFFER, bVBO);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, 
-                                120 * sizeof(GLfloat), coords);
-                glBindVertexArray(0);
+                        glBindVertexArray(bVAO);
+                        glBindBuffer(GL_ARRAY_BUFFER, bVBO);
+                        glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                                        120 * sizeof(GLfloat), coords);
+                        glBindVertexArray(0);
+                }
         }
 }
 
@@ -367,6 +380,8 @@ int main(int argc, char** argv) {
 
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
+                //debug("%f", glfwGetTime());
+
                 glfwPollEvents();
                 moveCamera();
                 
@@ -375,8 +390,8 @@ int main(int argc, char** argv) {
 
                 glUseProgram(shaderProgram);
 
-                // TESTING
-                moveBlock();
+                // Move the block down.
+                scrollBlock();
                 
                 GLuint viewLoc = glGetUniformLocation(shaderProgram,"view");
                 GLuint projLoc = glGetUniformLocation(shaderProgram,"proj");
