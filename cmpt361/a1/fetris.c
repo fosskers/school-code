@@ -30,6 +30,8 @@ block_t*  block;  // The Tetris block.
 // --- //
 
 GLfloat* blockToCoords();
+void newBlock();
+void refreshBlock();
 
 // --- //
 
@@ -56,8 +58,17 @@ void resetCamera() {
 
 /* Clears the board and starts over */
 void resetGame() {
-        block = randBlock();
+        /* TODO: Clear all other Blocks away */
 
+        newBlock();
+}
+
+void newBlock() {
+        block = randBlock();
+        refreshBlock();
+}
+
+void refreshBlock() {
         GLfloat* coords = blockToCoords();
         
         glBindVertexArray(bVAO);
@@ -79,10 +90,16 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         resetGame();
                 } else if(key == GLFW_KEY_LEFT && block->x > 0) {
                         block->x -= 1;
-                } else if(key == GLFW_KEY_RIGHT && block->x < 19) {
+                        refreshBlock();
+                } else if(key == GLFW_KEY_RIGHT && block->x < 9) {
                         block->x += 1;
+                        refreshBlock();
                 } else if(key == GLFW_KEY_DOWN && block->y > 0) {
                         block->y -= 1;
+                        refreshBlock();
+                } else if(key == GLFW_KEY_UP && block->y < 19) {
+                        block->y += 1;
+                        refreshBlock();
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -148,18 +165,6 @@ GLfloat* blockToCoords() {
                                      block->y+block->coords[5],
                                      block->fs[3]);
 
-        /*
-        debug("Here are the B values:");
-        int i;
-        for(i = 0; i < 30; i+=5) {
-                printf("%f ", b[i]);
-                printf("%f ", b[i+1]);
-                printf("%f ", b[i+2]);
-                printf("%f ", b[i+3]);
-                printf("%f\n", b[i+4]);
-        }
-        */
-
         check(a && b && c && d, "Couldn't get Cell coordinates.");
 
          // Construct return value
@@ -195,17 +200,6 @@ int initBlock() {
         
         // Each block has 120 data points.
         GLfloat* coords = blockToCoords();
-
-        // TODO: Does `coords` need to be freed?
-        debug("All Fused coords:");
-        int i;
-        for(i = 0; i < 120; i+=5) {
-                printf("%f ", coords[i]);
-                printf("%f ", coords[i+1]);
-                printf("%f ", coords[i+2]);
-                printf("%f ", coords[i+3]);
-                printf("%f\n", coords[i+4]);
-        }
         
         // Set up VAO/VBO
         glGenVertexArrays(1,&bVAO);
@@ -361,11 +355,6 @@ int main(int argc, char** argv) {
         check(shaderProgram > 0, "Shaders didn't compile.");
         debug("Shaders good.");
 
-        // TESTING
-        debug("TIME: %f", glfwGetTime());
-        srand((GLuint)(100000* glfwGetTime()));
-        debug("RAND: %d", rand());
-
         // Initialize Grid and first Block
         initGrid();
         quiet_check(initBlock());
@@ -380,8 +369,6 @@ int main(int argc, char** argv) {
 
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
-                //debug("%f", glfwGetTime());
-
                 glfwPollEvents();
                 moveCamera();
                 
