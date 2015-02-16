@@ -152,6 +152,28 @@ block_t* randBlock() {
         return NULL;
 }
 
+/* Rotate a Block to its next configuration */
+block_t* rotateBlock(block_t* b) {
+        check(b, "Null Block given.");
+
+        b->curr = (b->curr + 1) % b->variations;
+
+        switch(b->name) {
+        case 'I':
+                b->coords = &iBlock[b->curr][0];
+                break;
+        case 'S':
+                b->coords = &sBlock[b->curr][0];
+                break;
+        default:
+                b->coords = &lBlock[b->curr][0];
+        }
+
+        return b;
+ error:
+        return NULL;
+}
+
 /* Deallocate a Block */
 void destroyBlock(block_t* b) {
         if(b) {

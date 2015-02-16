@@ -69,6 +69,8 @@ void newBlock() {
 }
 
 void refreshBlock() {
+        debug("Refreshing global block...");
+
         GLfloat* coords = blockToCoords();
         
         glBindVertexArray(bVAO);
@@ -98,7 +100,7 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         block->y -= 1;
                         refreshBlock();
                 } else if(key == GLFW_KEY_UP && block->y < 19) {
-                        block->y += 1;
+                        block = rotateBlock(block);
                         refreshBlock();
                 }
         } else if(action == GLFW_RELEASE) {

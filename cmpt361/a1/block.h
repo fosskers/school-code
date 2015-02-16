@@ -39,6 +39,9 @@ GLfloat* fruitColour(Fruit f);
 /* Generate a random Block */
 block_t* randBlock();
 
+/* Rotate a Block to its next configuration */
+block_t* rotateBlock(block_t* b);
+
 /* Deallocate a Block */
 void destroyBlock(block_t* b);
 
