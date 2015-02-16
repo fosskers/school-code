@@ -105,9 +105,9 @@ Fruit* randFruits() {
         return fs;
 }
 
-/* Get the colour of a Fruit */
+/* Get the colour of a Fruit. Cannot fail */
 GLfloat* fruitColour(Fruit f) {
-        GLfloat* colour;
+        GLfloat* colour = NULL;
 
         switch(f) {
         case Grape:

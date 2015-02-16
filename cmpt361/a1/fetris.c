@@ -6,9 +6,10 @@
 #include <stdlib.h>
 
 #include "block.h"
+#include "cog/camera/camera.h"
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
-#include "cog/camera/camera.h"
+#include "util.h"
 
 // --- //
 
@@ -67,16 +68,94 @@ void mouse_callback(GLFWwindow* w, double xpos, double ypos) {
         cogcPan(camera,xpos,ypos);
 }
 
+GLfloat* gridLocToCoords(int x, int y, Fruit f) {
+        GLfloat* coords = NULL;
+        GLfloat* c      = NULL;
+        int i;
+
+        check(x > -1 && x < 10 &&
+              y > -1 && x < 20,
+              "Invalid coords given.");
+
+        coords = malloc(sizeof(GLfloat) * 30);
+        check_mem(coords);
+
+        c = fruitColour(f);
+
+        // This seemed the most compact way to do this.
+        GLfloat temp[30] = { 33 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             33 + x*33, 66 + y*33, c[0], c[1], c[2],
+                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             66 + x*33, 66 + y*33, c[0], c[1], c[2],
+                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             33 + x*33, 66 + y*33, c[0], c[1], c[2] };
+
+        // Copy values.
+        for(i = 0; i < 30; i++) {
+                coords[i] = temp[i];
+        }
+
+        return coords;
+ error:
+        return NULL;
+}
+
 /* Produce locations and colours based on the current global Block */
 GLfloat* blockToCoords() {
-        int i;
-        GLfloat* cs = malloc(sizeof(GLfloat) * 16 * 5);
+        GLfloat* temp1;
+        GLfloat* temp2;
+
+        // 4 cells, each has 6 vertices of 5 data points each.
+        GLfloat* cs = malloc(sizeof(GLfloat) * 4 * 6 * 5);
         check_mem(cs);
 
-        //        for(i )
+        // Coords and colours for each cell.
+        GLfloat* a = gridLocToCoords(block->x+block->coords[0],
+                                     block->y+block->coords[1],
+                                     block->fs[0]);
+        GLfloat* b = gridLocToCoords(block->x+block->coords[2],
+                                     block->y+block->coords[3],
+                                     block->fs[1]);
+        GLfloat* c = gridLocToCoords(block->x,
+                                     block->y,
+                                     block->fs[2]);
+        GLfloat* d = gridLocToCoords(block->x+block->coords[4],
+                                     block->y+block->coords[5],
+                                     block->fs[3]);
+
+        debug("Here are the B values:");
+        int i;
+        for(i = 0; i < 30; i+=5) {
+                printf("%f ", b[i]);
+                printf("%f ", b[i+1]);
+                printf("%f ", b[i+2]);
+                printf("%f ", b[i+3]);
+                printf("%f\n", b[i+4]);
+        }
+
+        GLfloat foo[] = {1,2,3,4,5};
+        GLfloat bar[] = {6,7,8,9,0};
+        GLfloat* baz  = append(foo,5,bar,5);
+
+        for(i = 0; i < 10; i++) {
+                printf("%f ", baz[i]);
+        }
+        puts("---");
+        
+        check(a && b && c && d, "Couldn't get Cell coordinates.");
+
+        // Construct return value
+        temp1 = append(a, 30, b, 30);
+        temp2 = append(c, 30, d, 30);
+        cs    = append(temp1, 60, temp2, 60);
+        check(cs, "Couldn't construct final list of coords/colours.");
+
+        free(temp1); free(temp2);
+        free(a); free(b); free(c); free(d);
         
         return cs;
  error:
+        if(cs) { free(cs); }
         return NULL;
 }
 
@@ -88,14 +167,38 @@ int initBlock() {
 
         debug("Initializing Block.");
 
-        /*
+        // Each block has 120 data points.
+        GLfloat* coords = blockToCoords();
+        
         // Set up VAO/VBO
         glGenVertexArrays(1,&bVAO);
         glBindVertexArray(bVAO);
         glGenBuffers(1,&bVBO);
         glBindBuffer(GL_ARRAY_BUFFER,bVBO);
-        glBufferData(GL_ARRAY_BUFFER); //TODO!
-        */
+        glBufferData(GL_ARRAY_BUFFER,120,coords,GL_STATIC_DRAW);
+
+        // Tell OpenGL how to process Grid Vertices
+        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),
+                              (GLvoid*)(2 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+        glBindVertexArray(0);  // Reset the VAO binding.
+
+        debug("Block initialized.");
+
+        // TODO: Does `coords` need to be freed?
+        debug("All Fused coords:");
+        int i;
+        for(i = 0; i < 120; i+=5) {
+                printf("%f ", coords[i]);
+                printf("%f ", coords[i+1]);
+                printf("%f ", coords[i+2]);
+                printf("%f ", coords[i+3]);
+                printf("%f\n", coords[i+4]);
+        }
 
         return 1;
  error:
@@ -161,7 +264,6 @@ void initGrid() {
                               5 * sizeof(GLfloat),
                               (GLvoid*)(2 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
-
         glBindVertexArray(0);  // Reset the VAO binding.
 }
 
@@ -200,10 +302,16 @@ int main(int argc, char** argv) {
         check(shaderProgram > 0, "Shaders didn't compile.");
         debug("Shaders good.");
 
+        // TESTING
+        debug("TIME: %f", glfwGetTime());
+        srand((GLuint)(100000* glfwGetTime()));
+        debug("RAND: %d", rand());
+        
         // Initialize Grid and first Block
         initGrid();
         quiet_check(initBlock());
 
+        // Set initial Camera state
         resetCamera();
         
         // Projection Matrix
@@ -227,13 +335,19 @@ int main(int argc, char** argv) {
                 // Update View Matrix
                 coglMDestroy(view);
                 view = coglM4LookAtP(camera->pos,camera->tar,camera->up);
-                
+
+                // Set transformation Matrices
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
-                
+
                 // Draw Grid
                 glBindVertexArray(gVAO);
                 glDrawArrays(GL_LINES, 0, 64);
+                glBindVertexArray(0);
+                
+                // Draw Block
+                glBindVertexArray(bVAO);
+                glDrawArrays(GL_TRIANGLES,0,24);
                 glBindVertexArray(0);
 
                 // Always comes last.

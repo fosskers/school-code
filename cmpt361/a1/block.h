@@ -33,7 +33,7 @@ block_t* newL();
 /* Generate four random Fruits */
 Fruit* randFruits();
 
-/* Get the colour of a Fruit */
+/* Get the colour of a Fruit. Cannot fail */
 GLfloat* fruitColour(Fruit f);
 
 /* Generate a random Block */
