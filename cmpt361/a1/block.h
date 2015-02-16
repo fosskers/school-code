@@ -3,7 +3,7 @@
 
 #include <GL/glew.h>
 
-typedef enum { Grape, Apple, Banana, Pear, Orange } Fruit;
+typedef enum { None, Grape, Apple, Banana, Pear, Orange } Fruit;
 
 typedef struct block_t {
         // Block Shape/Rotation

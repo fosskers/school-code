@@ -20,11 +20,12 @@ int lBlock[4][6] = {{ -1,-1, -1,0, 1,0 },
                     { -1,1, 0,1, 0,-1  }};
 
 // Fruit Colours
-GLfloat purple[] = {1.0, 0, 1.0};
-GLfloat red[]    = {1.0, 0, 0  };
-GLfloat yellow[] = {1.0, 1.0, 0};
-GLfloat green[]  = {0, 1.0, 0  };
-GLfloat orange[] = {1.0, 0.5, 0};
+GLfloat black[]  = { 0.0, 0.0, 0.0 };
+GLfloat purple[] = { 1.0, 0.0, 1.0 };
+GLfloat red[]    = { 1.0, 0.0, 0.0 };
+GLfloat yellow[] = { 1.0, 1.0, 0.0 };
+GLfloat green[]  = { 0.0, 1.0, 0.0 };
+GLfloat orange[] = { 1.0, 0.5, 0.0 };
 
 // --- //
 
@@ -99,7 +100,7 @@ Fruit* randFruits() {
 
         // There are five Fruit types available, so we mod5.
         for(i = 0; i < 4; i++) {
-                fs[i] = rand() % 5;
+                fs[i] = (rand() % 5) + 1;
         }
  error:
         return fs;
@@ -124,6 +125,9 @@ GLfloat* fruitColour(Fruit f) {
                 break;
         case Orange:
                 colour = orange;
+                break;
+        default:
+                colour = black;  // You should never see this!
         }
 
         return colour;

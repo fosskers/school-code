@@ -13,6 +13,17 @@
 
 // --- //
 
+GLfloat* blockToCoords();
+void initBoard();
+void clearBoard();
+void newBlock();
+void refreshBlock();
+int refreshBoard();
+
+// --- //
+
+#define BOARD_CELLS 120
+
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
@@ -22,16 +33,13 @@ GLuint gVAO;
 GLuint gVBO;
 GLuint bVAO;
 GLuint bVBO;
+GLuint fVAO;
+GLuint fVBO;
 
 camera_t* camera;
 matrix_t* view;
-block_t*  block;  // The Tetris block.
-
-// --- //
-
-GLfloat* blockToCoords();
-void newBlock();
-void refreshBlock();
+block_t*  block;   // The Tetris block.
+Fruit board[BOARD_CELLS];  // The Board, represented as Fruits.
 
 // --- //
 
@@ -58,8 +66,7 @@ void resetCamera() {
 
 /* Clears the board and starts over */
 void resetGame() {
-        /* TODO: Clear all other Blocks away */
-
+        initBoard();
         newBlock();
 }
 
@@ -69,8 +76,6 @@ void newBlock() {
 }
 
 void refreshBlock() {
-        debug("Refreshing global block...");
-
         GLfloat* coords = blockToCoords();
         
         glBindVertexArray(bVAO);
@@ -84,7 +89,7 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         if(action == GLFW_PRESS) {
                 keys[key] = true;
 
-                if(key == GLFW_KEY_ESCAPE) {
+                if(key == GLFW_KEY_Q) {
                         glfwSetWindowShouldClose(w, GL_TRUE);
                 } else if(key == GLFW_KEY_C) {
                         resetCamera();
@@ -114,8 +119,14 @@ void mouse_callback(GLFWwindow* w, double xpos, double ypos) {
 
 GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         GLfloat* coords = NULL;
-        GLfloat* c      = NULL;
-        int i;
+        GLfloat* c      = fruitColour(f);
+        GLuint i;
+        GLfloat temp[30] = { 33 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             33 + x*33, 66 + y*33, c[0], c[1], c[2],
+                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             33 + x*33, 66 + y*33, c[0], c[1], c[2], 
+                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
+                             66 + x*33, 66 + y*33, c[0], c[1], c[2] };
 
         check(x > -1 && x < 10 &&
               y > -1 && x < 20,
@@ -124,21 +135,18 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         coords = malloc(sizeof(GLfloat) * 30);
         check_mem(coords);
 
-        c = fruitColour(f);
-
-        // This seemed the most compact way to do this.
-        GLfloat temp[30] = { 33 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             33 + x*33, 66 + y*33, c[0], c[1], c[2],
-                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             33 + x*33, 66 + y*33, c[0], c[1], c[2], 
-                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             66 + x*33, 66 + y*33, c[0], c[1], c[2] };
+        if(f == None) {
+                // Nullify all the coordinates
+                for(i = 0; i < 30; i++) {
+                        temp[i] = 0.0;
+                }
+        }
 
         // Copy values.
         for(i = 0; i < 30; i++) {
                 coords[i] = temp[i];
         }
-
+        
         return coords;
  error:
         return NULL;
@@ -193,12 +201,6 @@ int initBlock() {
         debug("Got a: %c", block->name);
 
         debug("Initializing Block.");
-
-        debug("BLOCK COLOURS: %d %d %d %d",
-              block->fs[0],
-              block->fs[1],
-              block->fs[2],
-              block->fs[3]);
         
         // Each block has 120 data points.
         GLfloat* coords = blockToCoords();
@@ -208,7 +210,8 @@ int initBlock() {
         glBindVertexArray(bVAO);
         glGenBuffers(1,&bVBO);
         glBindBuffer(GL_ARRAY_BUFFER,bVBO);
-        glBufferData(GL_ARRAY_BUFFER,120 * sizeof(GLfloat),coords,GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER,120 * sizeof(GLfloat),coords,
+                     GL_DYNAMIC_DRAW);
 
         // Tell OpenGL how to process Block Vertices
         glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
@@ -299,6 +302,94 @@ void initGrid() {
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        debug("Grid initialized.");
+}
+
+/* Initialize the game board */
+void initBoard() {
+        debug("Initializing Board.");
+
+        GLfloat temp[] = { 0,0,0,0,0 };
+        
+        // Set up VAO/VBO
+        glGenVertexArrays(1,&fVAO);
+        glBindVertexArray(fVAO);
+        glGenBuffers(1,&fVBO);
+        glBindBuffer(GL_ARRAY_BUFFER,fVBO);
+        glBufferData(GL_ARRAY_BUFFER,6000 * sizeof(GLfloat),temp,
+                     GL_DYNAMIC_DRAW);
+
+        // Tell OpenGL how to process Block Vertices
+        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),
+                              (GLvoid*)(2 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+        glBindVertexArray(0);  // Reset the VAO binding.
+        //        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        clearBoard();
+
+        debug("Board initialized.");
+}
+
+/* Move all coloured Cells from the Board */
+void clearBoard() {
+        GLuint i;
+
+        for(i = 0; i < BOARD_CELLS; i++) {
+                board[i] = None;
+        }
+
+        board[0] = Apple;
+        board[1] = Banana;
+
+        refreshBoard();
+}
+
+/* Draw all the coloured Board Cells */
+int refreshBoard() {
+        GLuint i,j,k,l;
+        GLfloat* cellData;
+
+        debug("Refreshing Board...");
+        
+        GLfloat* coords = malloc(sizeof(GLfloat) * 6000);
+        check_mem(coords);
+
+        for(i = 0; i < BOARD_CELLS; i++) {
+                cellData = gridLocToCoords(i % 10, i / 10, board[i]);
+                check(cellData, "Couldn't get coord data for Cell.");
+                
+                for(j = i*30, k=0; k < 30; j++, k++) {
+                        coords[j] = cellData[k];
+                }
+        }
+
+        // TESTING
+        for(l = 0; l < 90; l+=5) {
+                if(l % 30 == 0) { puts("---"); }
+                printf("%f ", coords[l]);
+                printf("%f ", coords[l+1]);
+                printf("%f ", coords[l+2]);
+                printf("%f ", coords[l+3]);
+                printf("%f\n", coords[l+4]);
+        }
+
+        glBindVertexArray(fVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, fVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                        6000 * sizeof(GLfloat), coords);
+        glBindVertexArray(0);
+
+        // TODO: Free coords?
+        
+        return 1;
+ error:
+        return 0;        
 }
 
 /* Scrolls the Block naturally down */
@@ -357,7 +448,8 @@ int main(int argc, char** argv) {
         check(shaderProgram > 0, "Shaders didn't compile.");
         debug("Shaders good.");
 
-        // Initialize Grid and first Block
+        // Initialize Board, Grid, and first Block
+        initBoard();
         initGrid();
         quiet_check(initBlock());
 
@@ -369,6 +461,7 @@ int main(int argc, char** argv) {
                                            (float)wWidth/(float)wHeight,
                                            0.1f,1000.0f);
 
+        debug("Entering Loop.");
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
                 glfwPollEvents();
@@ -401,6 +494,11 @@ int main(int argc, char** argv) {
                 // Draw Block
                 glBindVertexArray(bVAO);
                 glDrawArrays(GL_TRIANGLES,0,24);
+                glBindVertexArray(0);
+
+                // Draw Board
+                glBindVertexArray(fVAO);
+                glDrawArrays(GL_TRIANGLES,0,1200);
                 glBindVertexArray(0);
 
                 // Always comes last.
