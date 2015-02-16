@@ -29,6 +29,10 @@ block_t*  block;  // The Tetris block.
 
 // --- //
 
+GLfloat* blockToCoords();
+
+// --- //
+
 /* Move Camera with WASD */
 void moveCamera() {
         cogcMove(camera,
@@ -50,15 +54,30 @@ void resetCamera() {
         camera = cogcCreate(camPos,camDir,camUp);
 }
 
-void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
-        if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-                glfwSetWindowShouldClose(w, GL_TRUE);
-        } else if(key == GLFW_KEY_C && action == GLFW_PRESS) {
-                resetCamera();
-        }
+/* Clears the board and starts over */
+void resetGame() {
+        block = randBlock();
 
+        GLfloat* coords = blockToCoords();
+        
+        glBindVertexArray(bVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, bVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                        120 * sizeof(GLfloat), coords);
+        glBindVertexArray(0);
+}
+
+void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         if(action == GLFW_PRESS) {
                 keys[key] = true;
+
+                if(key == GLFW_KEY_ESCAPE) {
+                        glfwSetWindowShouldClose(w, GL_TRUE);
+                } else if(key == GLFW_KEY_C) {
+                        resetCamera();
+                } else if(key == GLFW_KEY_R) {
+                        resetGame();
+                }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
         }
@@ -86,9 +105,9 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         GLfloat temp[30] = { 33 + x*33, 33 + y*33, c[0], c[1], c[2],
                              33 + x*33, 66 + y*33, c[0], c[1], c[2],
                              66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             66 + x*33, 66 + y*33, c[0], c[1], c[2],
+                             33 + x*33, 66 + y*33, c[0], c[1], c[2], 
                              66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             33 + x*33, 66 + y*33, c[0], c[1], c[2] };
+                             66 + x*33, 66 + y*33, c[0], c[1], c[2] };
 
         // Copy values.
         for(i = 0; i < 30; i++) {
@@ -123,6 +142,7 @@ GLfloat* blockToCoords() {
                                      block->y+block->coords[5],
                                      block->fs[3]);
 
+        /*
         debug("Here are the B values:");
         int i;
         for(i = 0; i < 30; i+=5) {
@@ -132,26 +152,20 @@ GLfloat* blockToCoords() {
                 printf("%f ", b[i+3]);
                 printf("%f\n", b[i+4]);
         }
+        */
 
-        GLfloat foo[] = {1,2,3,4,5};
-        GLfloat bar[] = {6,7,8,9,0};
-        GLfloat* baz  = append(foo,5,bar,5);
-
-        for(i = 0; i < 10; i++) {
-                printf("%f ", baz[i]);
-        }
-        puts("---");
-        
         check(a && b && c && d, "Couldn't get Cell coordinates.");
 
-        // Construct return value
+         // Construct return value
         temp1 = append(a, 30, b, 30);
         temp2 = append(c, 30, d, 30);
         cs    = append(temp1, 60, temp2, 60);
         check(cs, "Couldn't construct final list of coords/colours.");
+        //cs = a;
 
         free(temp1); free(temp2);
-        free(a); free(b); free(c); free(d);
+        free(a); 
+        free(b); free(c); free(d);
         
         return cs;
  error:
@@ -167,27 +181,14 @@ int initBlock() {
 
         debug("Initializing Block.");
 
+        debug("BLOCK COLOURS: %d %d %d %d",
+              block->fs[0],
+              block->fs[1],
+              block->fs[2],
+              block->fs[3]);
+        
         // Each block has 120 data points.
         GLfloat* coords = blockToCoords();
-        
-        // Set up VAO/VBO
-        glGenVertexArrays(1,&bVAO);
-        glBindVertexArray(bVAO);
-        glGenBuffers(1,&bVBO);
-        glBindBuffer(GL_ARRAY_BUFFER,bVBO);
-        glBufferData(GL_ARRAY_BUFFER,120,coords,GL_STATIC_DRAW);
-
-        // Tell OpenGL how to process Grid Vertices
-        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),(GLvoid*)0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),
-                              (GLvoid*)(2 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(1);
-        glBindVertexArray(0);  // Reset the VAO binding.
-
-        debug("Block initialized.");
 
         // TODO: Does `coords` need to be freed?
         debug("All Fused coords:");
@@ -199,6 +200,26 @@ int initBlock() {
                 printf("%f ", coords[i+3]);
                 printf("%f\n", coords[i+4]);
         }
+        
+        // Set up VAO/VBO
+        glGenVertexArrays(1,&bVAO);
+        glBindVertexArray(bVAO);
+        glGenBuffers(1,&bVBO);
+        glBindBuffer(GL_ARRAY_BUFFER,bVBO);
+        glBufferData(GL_ARRAY_BUFFER,120 * sizeof(GLfloat),coords,GL_DYNAMIC_DRAW);
+
+        // Tell OpenGL how to process Block Vertices
+        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                              5 * sizeof(GLfloat),
+                              (GLvoid*)(2 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+        glBindVertexArray(0);  // Reset the VAO binding.
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        debug("Block initialized.");
 
         return 1;
  error:
@@ -249,6 +270,16 @@ void initGrid() {
                 gridPoints[110 + 10*i + 9] = 1;
 	}
 
+        /*
+        for(i = 0; i < 320; i+=5) {
+                printf("%f ", gridPoints[i]);
+                printf("%f ", gridPoints[i+1]);
+                printf("%f ", gridPoints[i+2]);
+                printf("%f ", gridPoints[i+3]);
+                printf("%f\n", gridPoints[i+4]);
+        }
+        */
+        
         // Set up VAO/VBO
         glGenVertexArrays(1,&gVAO);
         glBindVertexArray(gVAO);
@@ -265,6 +296,21 @@ void initGrid() {
                               (GLvoid*)(2 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void moveBlock() {
+        if(block->y > 0) {
+                block->y -= 1;
+
+                GLfloat* coords = blockToCoords();
+        
+                glBindVertexArray(bVAO);
+                glBindBuffer(GL_ARRAY_BUFFER, bVBO);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, 
+                                120 * sizeof(GLfloat), coords);
+                glBindVertexArray(0);
+        }
 }
 
 int main(int argc, char** argv) {
@@ -290,10 +336,10 @@ int main(int argc, char** argv) {
         glfwSetKeyCallback(w, key_callback);
         glfwSetInputMode(w,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
         glfwSetCursorPosCallback(w,mouse_callback);
-
+        
         // Depth Testing
         glEnable(GL_DEPTH_TEST);
-        
+
         // Create Shader Program
         debug("Making shader program.");
         shaders_t* shaders = cogsShaders("vertex.glsl", "fragment.glsl");
@@ -306,7 +352,7 @@ int main(int argc, char** argv) {
         debug("TIME: %f", glfwGetTime());
         srand((GLuint)(100000* glfwGetTime()));
         debug("RAND: %d", rand());
-        
+
         // Initialize Grid and first Block
         initGrid();
         quiet_check(initBlock());
@@ -318,17 +364,20 @@ int main(int argc, char** argv) {
         matrix_t* proj = coglMPerspectiveP(tau/8, 
                                            (float)wWidth/(float)wHeight,
                                            0.1f,1000.0f);
-        
+
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
                 glfwPollEvents();
                 moveCamera();
                 
-                glClearColor(0.0f,0.0f,0.0f,1.0f);
+                glClearColor(0.5f,0.5f,0.5f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 glUseProgram(shaderProgram);
 
+                // TESTING
+                moveBlock();
+                
                 GLuint viewLoc = glGetUniformLocation(shaderProgram,"view");
                 GLuint projLoc = glGetUniformLocation(shaderProgram,"proj");
 
