@@ -25,7 +25,6 @@ int refreshBoard();
 
 #define BOARD_CELLS 200
 
-Fruit board[BOARD_CELLS];      // The Board, represented as Fruits.
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
@@ -41,6 +40,7 @@ GLuint fVBO;
 camera_t* camera;
 matrix_t* view;
 block_t*  block;   // The Tetris block.
+Fruit board[BOARD_CELLS];  // The Board, represented as Fruits.
 
 // --- //
 
@@ -341,10 +341,6 @@ void clearBoard() {
                 board[i] = 0;
         }
 
-        board[0] = Apple;
-        board[1] = Banana;
-        board[2] = Grape;
-
         refreshBoard();
 }
 
@@ -381,6 +377,40 @@ int refreshBoard() {
         return 0;        
 }
 
+/* Removes any solid lines, if it can */
+void lineCheck() {
+        int i,j;
+        bool fullRow = true;
+
+        for(i = 0; i < BOARD_CELLS; i+=10) {
+                fullRow = true;
+
+                // Check for full row
+                for(j = 0; j < 10; j++) {
+                        if(board[i + j] == None) {
+                                fullRow = false;
+                                break;
+                        }
+                }
+
+                if(fullRow) {
+                        debug("Found a full row!");
+                        // Empty the row
+                        for(j = 0; j < 10; j++) {
+                                board[i + j] = None;
+                        }
+
+                        // Drop the other pieces.
+                        // This is evil. C is stupid.
+                        for(i = i + j; i < BOARD_CELLS; i++) {
+                                board[i-10] = board[i];
+                        }
+
+                        break;
+                }
+        }
+}
+
 /* Scrolls the Block naturally down */
 void scrollBlock() {
         static double lastTime = 0;
@@ -410,6 +440,7 @@ void scrollBlock() {
                         board[cells[i] + 10*cells[i+1]] = block->fs[j];
                 }
 
+                lineCheck();
                 newBlock();
                 refreshBoard();
         }
