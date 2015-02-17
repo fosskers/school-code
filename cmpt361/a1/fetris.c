@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "collision.h"
 #include "block.h"
@@ -25,6 +26,7 @@ int refreshBoard();
 
 #define BOARD_CELLS 200
 
+bool gameOver = false;
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
@@ -502,6 +504,8 @@ void scrollBlock() {
                                         120 * sizeof(GLfloat), coords);
                         glBindVertexArray(0);
                 }
+        } else if(block->y == 19) {
+                gameOver = true;
         } else {
                 cells = blockCells(block);
 
@@ -570,6 +574,11 @@ int main(int argc, char** argv) {
         debug("Entering Loop.");
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
+                if(gameOver) {
+                        sleep(1);
+                        break;
+                }
+
                 glfwPollEvents();
                 moveCamera();
                 
