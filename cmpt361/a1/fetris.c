@@ -99,11 +99,15 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                 } else if(key == GLFW_KEY_R) {
                         resetGame();
                 } else if(key == GLFW_KEY_LEFT && block->x > 0) {
-                        block->x -= 1;
-                        refreshBlock();
+                        if(isColliding(block,board) != Left) {
+                                block->x -= 1;
+                                refreshBlock();
+                        }
                 } else if(key == GLFW_KEY_RIGHT && block->x < 9) {
-                        block->x += 1;
-                        refreshBlock();
+                        if(isColliding(block,board) != Right) {
+                                block->x += 1;
+                                refreshBlock();
+                        }
                 } else if(key == GLFW_KEY_DOWN && block->y > 0) {
                         block->y -= 1;
                         refreshBlock();

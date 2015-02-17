@@ -10,9 +10,13 @@ Collision isColliding(block_t* b, Fruit* fs) {
 
         if(collidingDown(cells, fs)) {
                 return Bottom;
-        } else if(collidingLeft(cells,fs) || collidingRight(cells,fs)) {
-                return Side;
-        } else {
+        } else if(collidingLeft(cells,fs)) {
+                return Left;
+                
+        } else if(collidingRight(cells,fs)) {
+                return Right;
+        }
+        else {
                 return Clear;
         }
 }

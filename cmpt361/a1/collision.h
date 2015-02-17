@@ -6,7 +6,7 @@
 
 // --- //
 
-typedef enum { Clear, Side, Bottom } Collision;
+typedef enum { Clear, Left, Right, Bottom } Collision;
         
 
 /* Is the given Block colliding with the world? */
