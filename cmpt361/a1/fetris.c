@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "collision.h"
 #include "block.h"
 #include "cog/camera/camera.h"
 #include "cog/dbg.h"
@@ -397,8 +398,8 @@ void scrollBlock() {
         static double lastTime = 0;
         double currTime = glfwGetTime();
 
-        if(block->y > 0) {
-                if(currTime - lastTime > 1) {
+        if(isColliding(block, board) != Bottom) {
+                if(currTime - lastTime > 0.5) {
                         lastTime = currTime;
                         block->y -= 1;
 
