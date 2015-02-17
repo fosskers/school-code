@@ -178,6 +178,25 @@ block_t* rotateBlock(block_t* b) {
         return NULL;
 }
 
+/* Yield a list of grid-space coordinates occupied by the Block */
+int* blockCells(block_t* b) {
+        int* cells = NULL;
+
+        check(b, "Null Block given.");
+
+        cells = malloc(sizeof(int) * 8);
+        check_mem(cells);
+        
+        cells[0] = b->x + b->coords[0]; cells[1] = b->y + b->coords[1];
+        cells[2] = b->x + b->coords[2]; cells[3] = b->y + b->coords[3];
+        cells[4] = b->x;                cells[5] = b->y;
+        cells[6] = b->x + b->coords[4]; cells[7] = b->y + b->coords[5];
+        
+        return cells;
+ error:
+        return NULL;
+}
+
 /* Deallocate a Block */
 void destroyBlock(block_t* b) {
         if(b) {

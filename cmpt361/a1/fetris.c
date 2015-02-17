@@ -23,8 +23,9 @@ int refreshBoard();
 
 // --- //
 
-#define BOARD_CELLS 120
+#define BOARD_CELLS 200
 
+Fruit board[BOARD_CELLS];      // The Board, represented as Fruits.
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
@@ -40,7 +41,6 @@ GLuint fVBO;
 camera_t* camera;
 matrix_t* view;
 block_t*  block;   // The Tetris block.
-Fruit board[BOARD_CELLS];  // The Board, represented as Fruits.
 
 // --- //
 
@@ -84,6 +84,8 @@ void refreshBlock() {
         glBufferSubData(GL_ARRAY_BUFFER, 0, 
                         120 * sizeof(GLfloat), coords);
         glBindVertexArray(0);
+
+        free(coords);  // Necessary?
 }
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
@@ -276,16 +278,6 @@ void initGrid() {
                 gridPoints[110 + 10*i + 9] = 1;
 	}
 
-        /*
-        for(i = 0; i < 320; i+=5) {
-                printf("%f ", gridPoints[i]);
-                printf("%f ", gridPoints[i+1]);
-                printf("%f ", gridPoints[i+2]);
-                printf("%f ", gridPoints[i+3]);
-                printf("%f\n", gridPoints[i+4]);
-        }
-        */
-        
         // Set up VAO/VBO
         glGenVertexArrays(1,&gVAO);
         glBindVertexArray(gVAO);
@@ -339,21 +331,22 @@ void initBoard() {
 
 /* Move all coloured Cells from the Board */
 void clearBoard() {
-        GLuint i;
+        int i;
 
         for(i = 0; i < BOARD_CELLS; i++) {
-                board[i] = None;
+                board[i] = 0;
         }
 
         board[0] = Apple;
         board[1] = Banana;
+        board[2] = Grape;
 
         refreshBoard();
 }
 
 /* Draw all the coloured Board Cells */
 int refreshBoard() {
-        GLuint i,j,k,l;
+        GLuint i,j,k;
         GLfloat* cellData;
 
         debug("Refreshing Board...");
@@ -370,16 +363,6 @@ int refreshBoard() {
                 }
         }
 
-        // TESTING
-        for(l = 0; l < 90; l+=5) {
-                if(l % 30 == 0) { puts("---"); }
-                printf("%f ", coords[l]);
-                printf("%f ", coords[l+1]);
-                printf("%f ", coords[l+2]);
-                printf("%f ", coords[l+3]);
-                printf("%f\n", coords[l+4]);
-        }
-
         glBindVertexArray(fVAO);
         glBindBuffer(GL_ARRAY_BUFFER, fVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, 
@@ -387,6 +370,7 @@ int refreshBoard() {
         glBindVertexArray(0);
 
         // TODO: Free coords?
+        free(coords);
         
         return 1;
  error:
@@ -397,9 +381,12 @@ int refreshBoard() {
 void scrollBlock() {
         static double lastTime = 0;
         double currTime = glfwGetTime();
+        int* cells = NULL;
+        int i,j;
 
         if(isColliding(block, board) != Bottom) {
                 if(currTime - lastTime > 0.5) {
+
                         lastTime = currTime;
                         block->y -= 1;
 
@@ -411,6 +398,16 @@ void scrollBlock() {
                                         120 * sizeof(GLfloat), coords);
                         glBindVertexArray(0);
                 }
+        } else {
+                cells = blockCells(block);
+
+                // Add the Block's cells to the master Board
+                for(i = 0,j=0; i < 8; i+=2,j++) {
+                        board[cells[i] + 10*cells[i+1]] = block->fs[j];
+                }
+
+                newBlock();
+                refreshBoard();
         }
 }
 
