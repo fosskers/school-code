@@ -52,12 +52,8 @@ bool collidingDown(int* cells, Fruit* fs) {
         int i;
 
         for(i = 0; i < 8; i+=2) {
-                if(cells[i+1] == 0) {
-                        debug("Hit bottom!");
-                        return true;
-                } else if(fs[cells[i] + (cells[i+1] - 1) * 10] != None) {
-                        debug("Hit another block! %d",
-                              fs[cells[i] + (cells[i+1] - 1) * 10]);
+                if(cells[i+1] == 0 ||
+                   fs[cells[i] + (cells[i+1] - 1) * 10] != None) {
                         return true;
                 }
         }

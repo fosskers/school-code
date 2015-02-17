@@ -414,6 +414,73 @@ void lineCheck() {
         }
 }
 
+/* Removes sets of 3 matching Fruits, if it can */
+void fruitCheck() {
+        int i,j,k;
+        Fruit curr;
+        Fruit streakF = None;
+        int streakN;
+
+        // Check columns
+        for(i = 0; i < 10; i++) {
+                streakN = 1;
+
+                for(j = 0; j < 20; j++) {
+                        curr = board[i + j*10];
+
+                        if(curr != None && curr == streakF) {
+                                streakN++;
+
+                                if(streakN == 3) {
+                                        board[i + j*10] = None;
+                                        board[i + (j-1)*10] = None;
+                                        board[i + (j-2)*10] = None;
+
+                                        for(j = j+1; j < 20; j++) {
+                                                board[i+(j-3)*10] = board[i+j*10];
+                                        }
+                                        break;
+                                }
+                        } else {
+                                streakF = curr;
+                                streakN = 1;
+                        }
+                }
+        }
+
+        // Check rows
+        for(j = 0; j < 20; j++) {
+                streakN = 1;
+
+                for(i = 0; i < 10; i++) {
+                        curr = board[i + j*10];
+
+                        if(curr != None && curr == streakF) {
+                                streakN++;
+
+                                if(streakN == 3) {
+                                        board[i + j*10] = None;
+                                        board[i-1 + j*10] = None;
+                                        board[i-2 + j*10] = None;
+
+                                        for(k = j+1; k < 20; k++) {
+                                                board[i-2 + (k-1)*10] = board[i-2 + k*10];
+                                        }
+                                        for(k = j+1; k < 20; k++) {
+                                                board[i-1 + (k-1)*10] = board[i-1 + k*10];
+                                        }
+                                        for(k = j+1; k < 20; k++) {
+                                                board[i + (k-1)*10] = board[i + k*10];
+                                        }
+                                }
+                        } else {
+                                streakF = curr;
+                                streakN = 1;
+                        }
+                }
+        }
+}
+
 /* Scrolls the Block naturally down */
 void scrollBlock() {
         static double lastTime = 0;
@@ -444,6 +511,7 @@ void scrollBlock() {
                 }
 
                 lineCheck();
+                fruitCheck();
                 newBlock();
                 refreshBoard();
         }
