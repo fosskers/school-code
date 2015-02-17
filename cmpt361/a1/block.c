@@ -197,6 +197,21 @@ int* blockCells(block_t* b) {
         return NULL;
 }
 
+/* Shuffle the order of the fruits */
+block_t* shuffleFruit(block_t* b) {
+        check(b, "Null Block given.");
+
+        Fruit d = b->fs[3];
+        b->fs[3] = b->fs[2];
+        b->fs[2] = b->fs[1];
+        b->fs[1] = b->fs[0];
+        b->fs[0] = d;
+
+        return b;
+ error:
+        return NULL;
+}
+
 /* Deallocate a Block */
 void destroyBlock(block_t* b) {
         if(b) {

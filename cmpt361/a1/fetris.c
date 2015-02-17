@@ -114,6 +114,9 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                 } else if(key == GLFW_KEY_UP && block->y < 19) {
                         block = rotateBlock(block);
                         refreshBlock();
+                } else if(key == GLFW_KEY_SPACE) {
+                        block = shuffleFruit(block);
+                        refreshBlock();
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;

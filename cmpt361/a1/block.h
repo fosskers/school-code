@@ -45,6 +45,9 @@ block_t* rotateBlock(block_t* b);
 /* Yield a list of grid-space coordinates occupied by the Block */
 int* blockCells(block_t* b);
 
+/* Shuffle the order of the fruits */
+block_t* shuffleFruit(block_t* b);
+
 /* Deallocate a Block */
 void destroyBlock(block_t* b);
 
