@@ -552,6 +552,8 @@ int main(int argc, char** argv) {
         check(shaderProgram > 0, "Shaders didn't compile.");
         debug("Shaders good.");
 
+        srand((GLuint)(100000 * glfwGetTime()));
+
         // Initialize Board, Grid, and first Block
         initBoard();
         initGrid();
