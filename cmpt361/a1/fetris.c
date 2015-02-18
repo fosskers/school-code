@@ -39,6 +39,12 @@ GLuint bVBO;
 GLuint fVAO;
 GLuint fVBO;
 
+// Timing Info
+GLfloat deltaTime = 0.0f;
+GLfloat lastFrame = 0.0f;
+GLfloat keyDelta  = 0.0f;
+GLfloat lastKey   = 0.0f;
+
 camera_t* camera;
 matrix_t* view;
 block_t*  block;   // The Tetris block.
@@ -49,6 +55,7 @@ Fruit board[BOARD_CELLS];  // The Board, represented as Fruits.
 /* Move Camera with WASD */
 void moveCamera() {
         cogcMove(camera,
+                 deltaTime,
                  keys[GLFW_KEY_W],
                  keys[GLFW_KEY_S],
                  keys[GLFW_KEY_A],
@@ -91,7 +98,16 @@ void refreshBlock() {
 }
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
-        if(action == GLFW_PRESS) {
+        GLfloat currentTime = glfwGetTime();
+
+        // Update key timing.
+        keyDelta = currentTime - lastKey;
+        lastKey  = currentTime;
+
+        debug("KEY DELTA: %f", keyDelta);
+
+        if(action == GLFW_PRESS ||
+           (action == GLFW_REPEAT && keyDelta > 0.01)) {
                 keys[key] = true;
 
                 if(key == GLFW_KEY_Q) {
@@ -571,6 +587,8 @@ int main(int argc, char** argv) {
                                            (float)wWidth/(float)wHeight,
                                            0.1f,1000.0f);
 
+        GLfloat currentFrame;
+        
         debug("Entering Loop.");
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
@@ -578,6 +596,10 @@ int main(int argc, char** argv) {
                         sleep(1);
                         break;
                 }
+
+                currentFrame = glfwGetTime();
+                deltaTime = currentFrame - lastFrame;
+                lastFrame = currentFrame;
 
                 glfwPollEvents();
                 moveCamera();
