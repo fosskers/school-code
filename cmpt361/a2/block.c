@@ -14,10 +14,13 @@ int iBlock[2][6] = {{ -2,0, -1,0, 1,0  },
                     { 0,-2, 0,-1, 0,1  }};
 int sBlock[2][6] = {{ -1,-1, 0,-1, 1,0 },
                     { 1,-1, 1,0, 0,1   }};
+int zBlock[2][6] = {{ 1,-1, 0,-1, -1,0 },
+                    { -1,-1, -1,0, 0,1 }};
 int lBlock[4][6] = {{ -1,-1, -1,0, 1,0 },
                     { 1,-1, 0,-1, 0,1  },
                     { 1,1, 1,0, -1,0   },
                     { -1,1, 0,1, 0,-1  }};
+int oBlock[1][6] = {{ -1,0, -1,-1, 0,-1 }};
 
 // Fruit Colours
 GLfloat black[]  = { 0.0, 0.0, 0.0 };
@@ -71,6 +74,27 @@ block_t* newS() {
         return NULL;
 }
 
+/* Create a Z block in the default position */
+block_t* newZ() {
+        block_t* b = malloc(sizeof(block_t));
+        check_mem(b);
+
+        Fruit* fs = randFruits();
+        check(fs, "Failed to generate Fruits.");
+
+        b->coords = &zBlock[0][0];
+        b->variations = 2;
+        b->curr = 0;
+        b->x = 5;
+        b->y = 19;
+        b->fs = fs;
+        b->name = 'Z';
+
+        return b;
+ error:
+        return NULL;
+}
+
 /* Create a L block in the default position */
 block_t* newL() {
         block_t* b = malloc(sizeof(block_t));
@@ -86,6 +110,27 @@ block_t* newL() {
         b->y = 19;
         b->fs = fs;
         b->name = 'L';
+
+        return b;
+ error:
+        return NULL;
+}
+
+/* Create a O block (a square) in the default position */
+block_t* newO() {
+        block_t* b = malloc(sizeof(block_t));
+        check_mem(b);
+
+        Fruit* fs = randFruits();
+        check(fs, "Failed to generate Fruits.");
+
+        b->coords = &oBlock[0][0];
+        b->variations = 1;
+        b->curr = 0;
+        b->x = 5;
+        b->y = 19;
+        b->fs = fs;
+        b->name = 'O';
 
         return b;
  error:
@@ -136,17 +181,23 @@ GLfloat* fruitColour(Fruit f) {
 /* Generate a random Block */
 block_t* randBlock() {
         block_t* b = NULL;
-        int choice = rand() % 3;
+        int choice = rand() % 5;
 
         switch(choice) {
         case 0:
-                b = newI();
+                b = newL();
                 break;
         case 1:
                 b = newS();
                 break;
+        case 2:
+                b = newZ();
+                break;
+        case 3:
+                b = newO();
+                break;
         default:
-                b = newL();
+                b = newI();
         }
 
         check(b, "Failed to randomly generate a Block.");
@@ -168,6 +219,12 @@ block_t* rotateBlock(block_t* b) {
                 break;
         case 'S':
                 b->coords = &sBlock[b->curr][0];
+                break;
+        case 'Z':
+                b->coords = &zBlock[b->curr][0];
+                break;
+        case 'O':
+                // O block doesn't rotate.
                 break;
         default:
                 b->coords = &lBlock[b->curr][0];

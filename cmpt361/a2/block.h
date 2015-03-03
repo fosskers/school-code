@@ -27,8 +27,14 @@ block_t* newI();
 /* Create a S block in the default position */
 block_t* newS();
 
+/* Create a Z block in the default position */
+block_t* newZ();
+
 /* Create a L block in the default position */
 block_t* newL();
+
+/* Create a O block (a square) in the default position */
+block_t* newO();
 
 /* Generate four random Fruits */
 Fruit* randFruits();
