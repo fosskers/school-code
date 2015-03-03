@@ -25,8 +25,12 @@ int refreshBoard();
 // --- //
 
 #define BOARD_CELLS 200
+// 6 floats per vertex, 3 vertices per triangle, 12 triangles per Cell
+#define CELL_FLOATS 6 * 3 * 12
+#define TOTAL_FLOATS BOARD_CELLS * CELL_FLOATS
 
 bool gameOver = false;
+bool running  = true;
 bool keys[1024];
 GLuint wWidth  = 400;
 GLuint wHeight = 720;
@@ -64,12 +68,9 @@ void moveCamera() {
 
 /* Init/Reset the Camera */
 void resetCamera() {
-        GLfloat camFS[] = {0,0,4};
-        matrix_t* camPos = coglVFromArray(3,camFS);
-        camFS[0] = 0; camFS[1] = 0; camFS[2] = -1;
-        matrix_t* camDir = coglVFromArray(3,camFS);
-        camFS[0] = 0; camFS[1] = 1; camFS[2] = 0;
-        matrix_t* camUp = coglVFromArray(3,camFS);
+        matrix_t* camPos = coglV3(0,0,4);
+        matrix_t* camDir = coglV3(0,0,-1);
+        matrix_t* camUp = coglV3(0,1,0);
 
         camera = cogcCreate(camPos,camDir,camUp);
 }
@@ -91,7 +92,7 @@ void refreshBlock() {
         glBindVertexArray(bVAO);
         glBindBuffer(GL_ARRAY_BUFFER, bVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, 
-                        120 * sizeof(GLfloat), coords);
+                        CELL_FLOATS * 4 * sizeof(GLfloat), coords);
         glBindVertexArray(0);
 
         free(coords);  // Necessary?
@@ -110,6 +111,12 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
 
                 if(key == GLFW_KEY_Q) {
                         glfwSetWindowShouldClose(w, GL_TRUE);
+                } else if(key == GLFW_KEY_P) {
+                        if(running) {
+                                running = false;
+                        } else {
+                                running = true;
+                        }
                 } else if(key == GLFW_KEY_C) {
                         resetCamera();
                 } else if(key == GLFW_KEY_R) {
@@ -154,29 +161,74 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         GLfloat* coords = NULL;
         GLfloat* c      = fruitColour(f);
         GLuint i;
-        GLfloat temp[30] = { 33 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             33 + x*33, 66 + y*33, c[0], c[1], c[2],
-                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             33 + x*33, 66 + y*33, c[0], c[1], c[2], 
-                             66 + x*33, 33 + y*33, c[0], c[1], c[2],
-                             66 + x*33, 66 + y*33, c[0], c[1], c[2] };
+        // TODO: This is wrong.
+        GLfloat temp[CELL_FLOATS] = {
+                // Back T1
+                33 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                // Back T2
+                33 + x*33, 66 + y*33,  0, c[0], c[1], c[2], 
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                // Front T1
+                33 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                // Front T2
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2], 
+                66 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                // Left T1
+                33 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                // Left T2
+                33 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                // Right T1
+                66 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                // Right T2
+                66 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                // Top T1
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                // Top T2
+                33 + x*33, 66 + y*33, 33, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33,  0, c[0], c[1], c[2],
+                // Bottom T1
+                33 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                // Bottom T2
+                33 + x*33, 33 + y*33, 33, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33,  0, c[0], c[1], c[2],
+                66 + x*33, 33 + y*33,  0, c[0], c[1], c[2]
+        };
 
         check(x > -1 && x < 10 &&
               y > -1 && x < 20,
               "Invalid coords given.");
 
-        coords = malloc(sizeof(GLfloat) * 30);
+        coords = malloc(sizeof(GLfloat) * CELL_FLOATS);
         check_mem(coords);
 
         if(f == None) {
                 // Nullify all the coordinates
-                for(i = 0; i < 30; i++) {
+                for(i = 0; i < CELL_FLOATS; i++) {
                         temp[i] = 0.0;
                 }
         }
 
         // Copy values.
-        for(i = 0; i < 30; i++) {
+        for(i = 0; i < CELL_FLOATS; i++) {
                 coords[i] = temp[i];
         }
         
@@ -189,10 +241,11 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
 GLfloat* blockToCoords() {
         GLfloat* temp1;
         GLfloat* temp2;
+        GLfloat* cs = NULL;
 
-        // 4 cells, each has 6 vertices of 5 data points each.
-        GLfloat* cs = malloc(sizeof(GLfloat) * 4 * 6 * 5);
-        check_mem(cs);
+        // 4 cells, each has 36 vertices of 6 data points each.
+        //GLfloat* cs = malloc(sizeof(GLfloat) * 4 * 36 * 6);
+        //check_mem(cs);
 
         // Coords and colours for each cell.
         GLfloat* a = gridLocToCoords(block->x+block->coords[0],
@@ -211,15 +264,13 @@ GLfloat* blockToCoords() {
         check(a && b && c && d, "Couldn't get Cell coordinates.");
 
          // Construct return value
-        temp1 = append(a, 30, b, 30);
-        temp2 = append(c, 30, d, 30);
-        cs    = append(temp1, 60, temp2, 60);
+        temp1 = append(a, CELL_FLOATS, b, CELL_FLOATS);
+        temp2 = append(c, CELL_FLOATS, d, CELL_FLOATS);
+        cs    = append(temp1, CELL_FLOATS * 2, temp2, CELL_FLOATS * 2);
         check(cs, "Couldn't construct final list of coords/colours.");
-        //cs = a;
 
         free(temp1); free(temp2);
-        free(a); 
-        free(b); free(c); free(d);
+        free(a); free(b); free(c); free(d);
         
         return cs;
  error:
@@ -234,8 +285,7 @@ int initBlock() {
         debug("Got a: %c", block->name);
 
         debug("Initializing Block.");
-        
-        // Each block has 120 data points.
+
         GLfloat* coords = blockToCoords();
         
         // Set up VAO/VBO
@@ -243,16 +293,17 @@ int initBlock() {
         glBindVertexArray(bVAO);
         glGenBuffers(1,&bVBO);
         glBindBuffer(GL_ARRAY_BUFFER,bVBO);
-        glBufferData(GL_ARRAY_BUFFER,120 * sizeof(GLfloat),coords,
+        glBufferData(GL_ARRAY_BUFFER,
+                     CELL_FLOATS * 4 * sizeof(GLfloat),coords,
                      GL_DYNAMIC_DRAW);
 
         // Tell OpenGL how to process Block Vertices
-        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                              6 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),
-                              (GLvoid*)(2 * sizeof(GLfloat)));
+                              6 * sizeof(GLfloat),
+                              (GLvoid*)(3 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -333,27 +384,30 @@ void initGrid() {
 void initBoard() {
         debug("Initializing Board.");
 
-        GLfloat temp[] = { 0,0,0,0,0 };
+        GLfloat temp[TOTAL_FLOATS];
         
         // Set up VAO/VBO
         glGenVertexArrays(1,&fVAO);
         glBindVertexArray(fVAO);
         glGenBuffers(1,&fVBO);
         glBindBuffer(GL_ARRAY_BUFFER,fVBO);
-        glBufferData(GL_ARRAY_BUFFER,6000 * sizeof(GLfloat),temp,
+        // 200 cells, each has 36 vertices of 6 data points each.
+        glBufferData(GL_ARRAY_BUFFER, 
+                     TOTAL_FLOATS * sizeof(GLfloat),
+                     temp,
                      GL_DYNAMIC_DRAW);
-
+        
         // Tell OpenGL how to process Block Vertices
-        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                              6 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),
-                              (GLvoid*)(2 * sizeof(GLfloat)));
+                              6 * sizeof(GLfloat),
+                              (GLvoid*)(3 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
         //        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+        
         clearBoard();
 
         debug("Board initialized.");
@@ -377,14 +431,14 @@ int refreshBoard() {
 
         debug("Refreshing Board...");
         
-        GLfloat* coords = malloc(sizeof(GLfloat) * 6000);
+        GLfloat* coords = malloc(sizeof(GLfloat) * TOTAL_FLOATS);
         check_mem(coords);
 
         for(i = 0; i < BOARD_CELLS; i++) {
                 cellData = gridLocToCoords(i % 10, i / 10, board[i]);
                 check(cellData, "Couldn't get coord data for Cell.");
                 
-                for(j = i*30, k=0; k < 30; j++, k++) {
+                for(j = i*CELL_FLOATS, k=0; k < CELL_FLOATS; j++, k++) {
                         coords[j] = cellData[k];
                 }
         }
@@ -392,10 +446,9 @@ int refreshBoard() {
         glBindVertexArray(fVAO);
         glBindBuffer(GL_ARRAY_BUFFER, fVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, 
-                        6000 * sizeof(GLfloat), coords);
+                        TOTAL_FLOATS * sizeof(GLfloat), coords);
         glBindVertexArray(0);
 
-        // TODO: Free coords?
         free(coords);
         
         return 1;
@@ -511,6 +564,10 @@ void scrollBlock() {
         int* cells = NULL;
         int i,j;
 
+        if(!running) {
+                return;
+        }
+        
         if(isColliding(block, board) != Bottom) {
                 if(currTime - lastTime > 0.5) {
 
@@ -522,7 +579,8 @@ void scrollBlock() {
                         glBindVertexArray(bVAO);
                         glBindBuffer(GL_ARRAY_BUFFER, bVBO);
                         glBufferSubData(GL_ARRAY_BUFFER, 0, 
-                                        120 * sizeof(GLfloat), coords);
+                                        CELL_FLOATS * 4 * sizeof(GLfloat),
+                                        coords);
                         glBindVertexArray(0);
                 }
         } else if(block->y == 19) {
@@ -635,18 +693,18 @@ int main(int argc, char** argv) {
                 
                 // Draw Block
                 glBindVertexArray(bVAO);
-                glDrawArrays(GL_TRIANGLES,0,24);
+                glDrawArrays(GL_TRIANGLES,0,36 * 4);
                 glBindVertexArray(0);
 
                 // Draw Board
                 glBindVertexArray(fVAO);
-                glDrawArrays(GL_TRIANGLES,0,1200);
+                glDrawArrays(GL_TRIANGLES,0,7200);
                 glBindVertexArray(0);
 
                 // Always comes last.
                 glfwSwapBuffers(w);
         }
-
+        
         // Clean up.
         glfwTerminate();
         log_info("Thanks for playing!");
