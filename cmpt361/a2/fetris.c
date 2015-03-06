@@ -56,16 +56,6 @@ Fruit board[BOARD_CELLS];  // The Board, represented as Fruits.
 
 // --- //
 
-/* Move Camera with WASD */
-void moveCamera() {
-        cogcMove(camera,
-                 deltaTime,
-                 keys[GLFW_KEY_W],
-                 keys[GLFW_KEY_S],
-                 keys[GLFW_KEY_A],
-                 keys[GLFW_KEY_D]);
-}
-
 /* Init/Reset the Camera */
 void resetCamera() {
         matrix_t* camPos = coglV3(0,0,4);
@@ -100,6 +90,7 @@ void refreshBlock() {
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         GLfloat currentTime = glfwGetTime();
+        static double x = 1;
 
         // Update key timing.
         keyDelta = currentTime - lastKey;
@@ -109,10 +100,11 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
            (action == GLFW_REPEAT && keyDelta > 0.01)) {
                 keys[key] = true;
 
-                if(key == GLFW_KEY_Q) {
+                if(keys[GLFW_KEY_Q]) {
                         glfwSetWindowShouldClose(w, GL_TRUE);
                 } else if(key == GLFW_KEY_P) {
                         if(running) {
+                                debug("Paused.");
                                 running = false;
                         } else {
                                 running = true;
@@ -121,20 +113,7 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         resetCamera();
                 } else if(key == GLFW_KEY_R) {
                         resetGame();
-                } else if(key == GLFW_KEY_LEFT && block->x > 0) {
-                        if(isColliding(block,board) != Left) {
-                                block->x -= 1;
-                                refreshBlock();
-                        }
-                } else if(key == GLFW_KEY_RIGHT && block->x < 9) {
-                        if(isColliding(block,board) != Right) {
-                                block->x += 1;
-                                refreshBlock();
-                        }
-                } else if(key == GLFW_KEY_DOWN && block->y > 0) {
-                        block->y -= 1;
-                        refreshBlock();
-                } else if(key == GLFW_KEY_UP && block->y < 19) {
+                } else if(keys[GLFW_KEY_UP] && block->y < 19) {
                         block_t* copy = copyBlock(block);
                         copy = rotateBlock(copy);
                         if(isColliding(copy,board) == Clear) {
@@ -144,9 +123,16 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         } else {
                                 debug("Flip would collide!");
                         }
-                } else if(key == GLFW_KEY_SPACE) {
-                        block = shuffleFruit(block);
-                        refreshBlock();
+                } else if(keys[GLFW_KEY_LEFT_CONTROL] &&
+                          keys[GLFW_KEY_LEFT]) {
+                        // Pan left.
+                        x += 5;
+                        cogcPan(camera,x,0);
+                } else if(keys[GLFW_KEY_LEFT_CONTROL] &&
+                          keys[GLFW_KEY_RIGHT]) {
+                        // Pan right.
+                        x -= 5;
+                        cogcPan(camera,x,0);
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -408,7 +394,8 @@ void initGrid() {
         glBindVertexArray(gVAO);
         glGenBuffers(1,&gVBO);
         glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(gridPoints),gridPoints,GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(gridPoints),
+                     gridPoints,GL_STATIC_DRAW);
 
         // Tell OpenGL how to process Grid Vertices
         glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
@@ -709,7 +696,6 @@ int main(int argc, char** argv) {
                 lastFrame = currentFrame;
 
                 glfwPollEvents();
-                moveCamera();
                 
                 glClearColor(0.5f,0.5f,0.5f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
