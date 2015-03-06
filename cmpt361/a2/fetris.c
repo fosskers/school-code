@@ -28,20 +28,22 @@ int refreshBoard();
 // 6 floats per vertex, 3 vertices per triangle, 12 triangles per Cell
 #define CELL_FLOATS 6 * 3 * 12
 #define TOTAL_FLOATS BOARD_CELLS * CELL_FLOATS
+#define wWidth 650
+#define wHeight 720
 
 bool gameOver = false;
 bool running  = true;
 bool keys[1024];
-GLuint wWidth  = 400;
-GLuint wHeight = 720;
 
 // Buffer Objects
-GLuint gVAO;
+GLuint gVAO;  // Grid
 GLuint gVBO;
-GLuint bVAO;
+GLuint bVAO;  // Block
 GLuint bVBO;
-GLuint fVAO;
+GLuint fVAO;  // Board's Fruits
 GLuint fVBO;
+GLuint aVAO;  // Robot Arm
+GLuint aVBO;
 
 // Timing Info
 GLfloat deltaTime = 0.0f;
@@ -104,9 +106,10 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         glfwSetWindowShouldClose(w, GL_TRUE);
                 } else if(key == GLFW_KEY_P) {
                         if(running) {
-                                debug("Paused.");
+                                log_info("Paused.");
                                 running = false;
                         } else {
+                                log_info("Unpaused.");
                                 running = true;
                         }
                 } else if(key == GLFW_KEY_C) {
@@ -487,6 +490,74 @@ int refreshBoard() {
         return 0;        
 }
 
+/* Initialize the Robot Arm visuals */
+void initArm() {
+        GLfloat base[216] = {
+                -0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+                0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+                0.5f,  0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+                0.5f,  0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+                -0.5f,  0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+                -0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+                -0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+                0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+                0.5f,  0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+                0.5f,  0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+                -0.5f,  0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+                -0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+                -0.5f,  0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
+                -0.5f,  0.25f, -0.5f, -1.0f,  0.0f,  0.0f,
+                -0.5f, -0.25f, -0.5f, -1.0f,  0.0f,  0.0f,
+                -0.5f, -0.25f, -0.5f, -1.0f,  0.0f,  0.0f,
+                -0.5f, -0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
+                -0.5f,  0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+                0.5f,  0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
+                0.5f,  0.25f, -0.5f,  1.0f,  0.0f,  0.0f,
+                0.5f, -0.25f, -0.5f,  1.0f,  0.0f,  0.0f,
+                0.5f, -0.25f, -0.5f,  1.0f,  0.0f,  0.0f,
+                0.5f, -0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
+                0.5f,  0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+                -0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
+                0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
+                0.5f, -0.25f,  0.5f,  0.0f, -1.0f,  0.0f,
+                0.5f, -0.25f,  0.5f,  0.0f, -1.0f,  0.0f,
+                -0.5f, -0.25f,  0.5f,  0.0f, -1.0f,  0.0f,
+                -0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+                -0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f,
+                0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f,
+                0.5f,  0.25f,  0.5f,  0.0f,  1.0f,  0.0f,
+                0.5f,  0.25f,  0.5f,  0.0f,  1.0f,  0.0f,
+                -0.5f,  0.25f,  0.5f,  0.0f,  1.0f,  0.0f,
+                -0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f
+        };
+
+        debug("Initializing Robot Arm.");
+
+        // Set up VAO/VBO
+        glGenVertexArrays(1,&aVAO);
+        glBindVertexArray(aVAO);
+        glGenBuffers(1,&aVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, aVBO);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(base),
+                     base,GL_STATIC_DRAW);
+
+        // Tell OpenGL how to process Grid Vertices
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                              6 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                              6 * sizeof(GLfloat),
+                              (GLvoid*)(3 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(1);
+        glBindVertexArray(0);  // Reset the VAO binding.
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 /* Removes any solid lines, if it can */
 void lineCheck() {
         int i,j;
@@ -658,23 +729,42 @@ int main(int argc, char** argv) {
         // Depth Testing
         glEnable(GL_DEPTH_TEST);
 
-        // Create Shader Program
-        debug("Making shader program.");
+        // Tetris piece Shaders
+        debug("Compiling Game shaders.");
         shaders_t* shaders = cogsShaders("vertex.glsl", "fragment.glsl");
-        GLuint shaderProgram = cogsProgram(shaders);
+        GLuint tetrisShader = cogsProgram(shaders);
         cogsDestroy(shaders);
-        check(shaderProgram > 0, "Shaders didn't compile.");
-        debug("Shaders good.");
+        check(tetrisShader > 0, "Game shaders didn't compile.");
+
+        // Arm Shaders
+        debug("Compiling Arm shaders.");
+        shaders = cogsShaders("aVertex.glsl","aFragment.glsl");
+        GLuint armShader = cogsProgram(shaders);
+        cogsDestroy(shaders);
+        check(armShader > 0, "Arm shaders didn't compile.");
 
         srand((GLuint)(100000 * glfwGetTime()));
 
-        // Initialize Board, Grid, and first Block
+        // Initialize Board, Grid, Arm, and first Block
         initBoard();
         initGrid();
+        initArm();
         quiet_check(initBlock());
 
         // Set initial Camera state
         resetCamera();
+
+        // Model Matrix for Game
+        matrix_t* tModel = coglMIdentity(4);
+        tModel = coglM4Translate(tModel,-200,-360,0);
+        tModel = coglMScale(tModel,2.0/450);
+        check(tModel, "Matrix transformation failed.");
+
+        // Model Matrix for Robot Arm
+        matrix_t* aModel = coglMIdentity(4);
+        aModel = coglMScale(aModel,0.5);
+        aModel = coglM4Translate(aModel,-1.1,-1.25,0);
+        check(aModel, "Matrix transformation failed.");
         
         // Projection Matrix
         matrix_t* proj = coglMPerspectiveP(tau/8, 
@@ -682,6 +772,12 @@ int main(int argc, char** argv) {
                                            0.1f,1000.0f);
 
         GLfloat currentFrame;
+
+        // Set Lighting
+        glUseProgram(armShader);
+        matrix_t* lightPos = coglV3(1.2f,1.0f,2.0f);
+        GLuint lightPosLoc = glGetUniformLocation(armShader,"lightPos");
+        glUniform3f(lightPosLoc,lightPos->m[0],lightPos->m[1],lightPos->m[2]);
         
         debug("Entering Loop.");
         // Render until you shouldn't.
@@ -696,23 +792,25 @@ int main(int argc, char** argv) {
                 lastFrame = currentFrame;
 
                 glfwPollEvents();
-                
-                glClearColor(0.5f,0.5f,0.5f,1.0f);
+
+                glClearColor(0.1f,0.1f,0.1f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                glUseProgram(shaderProgram);
+                glUseProgram(tetrisShader);
 
                 // Move the block down.
                 scrollBlock();
-                
-                GLuint viewLoc = glGetUniformLocation(shaderProgram,"view");
-                GLuint projLoc = glGetUniformLocation(shaderProgram,"proj");
+
+                GLuint modlLoc = glGetUniformLocation(tetrisShader,"model");
+                GLuint viewLoc = glGetUniformLocation(tetrisShader,"view");
+                GLuint projLoc = glGetUniformLocation(tetrisShader,"proj");
 
                 // Update View Matrix
                 coglMDestroy(view);
                 view = coglM4LookAtP(camera->pos,camera->tar,camera->up);
 
                 // Set transformation Matrices
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
 
@@ -729,6 +827,28 @@ int main(int argc, char** argv) {
                 // Draw Board
                 glBindVertexArray(fVAO);
                 glDrawArrays(GL_TRIANGLES,0,7200);
+                glBindVertexArray(0);
+
+                // Draw Arm
+                glUseProgram(armShader);
+
+                GLuint cubeL  = glGetUniformLocation(armShader,"cubeColour");
+                GLuint lightL = glGetUniformLocation(armShader,"lightColour");
+
+                //glUniform3f(cubeL,1.0f,0.5f,0.31f);
+                glUniform3f(cubeL,1.0f,0,0);
+                glUniform3f(lightL,1.0f,1.0f,1.0f);
+
+                modlLoc = glGetUniformLocation(armShader,"model");
+                viewLoc = glGetUniformLocation(armShader,"view");
+                projLoc = glGetUniformLocation(armShader,"proj");
+
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,aModel->m);
+                glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
+                glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
+
+                glBindVertexArray(aVAO);
+                glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
                 // Always comes last.
