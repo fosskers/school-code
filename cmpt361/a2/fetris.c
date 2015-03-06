@@ -318,45 +318,89 @@ int initBlock() {
 /* Initialize the Grid */
 // Insert TRON pun here.
 void initGrid() {
-        GLfloat gridPoints[320];  // Contains colour info as well.
+        GLfloat gridPoints[768];  // Contains colour info as well.
         int i;
 
         debug("Initializing Grid.");
 
-        // Vertical lines
-	for (i = 0; i < 11; i++){
+        // Back Vertical lines
+	for (i = 0; i < 11; i++) {
                 // Bottom coord
-		gridPoints[10*i]     = 33.0 + (33.0 * i);
-                gridPoints[10*i + 1] = 33.0;
+		gridPoints[12*i]     = 33.0 + (33.0 * i);
+                gridPoints[12*i + 1] = 33.0;
+                gridPoints[12*i + 2] = 0;
                 // Bottom colour
-                gridPoints[10*i + 2] = 1;
-                gridPoints[10*i + 3] = 1;
-                gridPoints[10*i + 4] = 1;
+                gridPoints[12*i + 3] = 1;
+                gridPoints[12*i + 4] = 1;
+                gridPoints[12*i + 5] = 1;
                 // Top coord
-		gridPoints[10*i + 5] = 33.0 + (33.0 * i);
-                gridPoints[10*i + 6] = 693.0;
+		gridPoints[12*i + 6] = 33.0 + (33.0 * i);
+                gridPoints[12*i + 7] = 693.0;
+                gridPoints[12*i + 8] = 0;
                 // Top colour
-                gridPoints[10*i + 7] = 1;
-                gridPoints[10*i + 8] = 1;
-                gridPoints[10*i + 9] = 1;
+                gridPoints[12*i + 9]  = 1;
+                gridPoints[12*i + 10] = 1;
+                gridPoints[12*i + 11] = 1;
 	}
 
-	// Horizontal lines
-	for (i = 0; i < 21; i++){
+	// Back Horizontal lines
+	for (i = 0; i < 21; i++) {
                 // Left coord
-		gridPoints[110 + 10*i]     = 33.0;
-                gridPoints[110 + 10*i + 1] = 33.0 + (33.0 * i);
+		gridPoints[132 + 12*i]     = 33.0;
+                gridPoints[132 + 12*i + 1] = 33.0 + (33.0 * i);
+                gridPoints[132 + 12*i + 2] = 0;
                 // Left colour
-                gridPoints[110 + 10*i + 2] = 1;
-                gridPoints[110 + 10*i + 3] = 1;
-                gridPoints[110 + 10*i + 4] = 1;
+                gridPoints[132 + 12*i + 3] = 1;
+                gridPoints[132 + 12*i + 4] = 1;
+                gridPoints[132 + 12*i + 5] = 1;
                 // Right coord
-		gridPoints[110 + 10*i + 5] = 363.0;
-                gridPoints[110 + 10*i + 6] = 33.0 + (33.0 * i);
+		gridPoints[132 + 12*i + 6] = 363.0;
+                gridPoints[132 + 12*i + 7] = 33.0 + (33.0 * i);
+                gridPoints[132 + 12*i + 8] = 0;
                 // Right colour
-                gridPoints[110 + 10*i + 7] = 1;
-                gridPoints[110 + 10*i + 8] = 1;
-                gridPoints[110 + 10*i + 9] = 1;
+                gridPoints[132 + 12*i + 9]  = 1;
+                gridPoints[132 + 12*i + 10] = 1;
+                gridPoints[132 + 12*i + 11] = 1;
+	}
+
+        // Front Vertical lines
+	for (i = 0; i < 11; i++) {
+                // Bottom coord
+		gridPoints[384 + 12*i]     = 33.0 + (33.0 * i);
+                gridPoints[384 + 12*i + 1] = 33.0;
+                gridPoints[384 + 12*i + 2] = 33.0;
+                // Bottom colour
+                gridPoints[384 + 12*i + 3] = 1;
+                gridPoints[384 + 12*i + 4] = 1;
+                gridPoints[384 + 12*i + 5] = 1;
+                // Top coord
+		gridPoints[384 + 12*i + 6] = 33.0 + (33.0 * i);
+                gridPoints[384 + 12*i + 7] = 693.0;
+                gridPoints[384 + 12*i + 8] = 33.0;
+                // Top colour
+                gridPoints[384 + 12*i + 9]  = 1;
+                gridPoints[384 + 12*i + 10] = 1;
+                gridPoints[384 + 12*i + 11] = 1;
+	}
+
+	// Front Horizontal lines
+	for (i = 0; i < 21; i++) {
+                // Left coord
+		gridPoints[516 + 12*i]     = 33.0;
+                gridPoints[516 + 12*i + 1] = 33.0 + (33.0 * i);
+                gridPoints[516 + 12*i + 2] = 33.0;
+                // Left colour
+                gridPoints[516 + 12*i + 3] = 1;
+                gridPoints[516 + 12*i + 4] = 1;
+                gridPoints[516 + 12*i + 5] = 1;
+                // Right coord
+		gridPoints[516 + 12*i + 6] = 363.0;
+                gridPoints[516 + 12*i + 7] = 33.0 + (33.0 * i);
+                gridPoints[516 + 12*i + 8] = 33.0;
+                // Right colour
+                gridPoints[516 + 12*i + 9]  = 1;
+                gridPoints[516 + 12*i + 10] = 1;
+                gridPoints[516 + 12*i + 11] = 1;
 	}
 
         // Set up VAO/VBO
@@ -367,12 +411,12 @@ void initGrid() {
         glBufferData(GL_ARRAY_BUFFER,sizeof(gridPoints),gridPoints,GL_STATIC_DRAW);
 
         // Tell OpenGL how to process Grid Vertices
-        glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),(GLvoid*)0);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                              6 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              5 * sizeof(GLfloat),
-                              (GLvoid*)(2 * sizeof(GLfloat)));
+                              6 * sizeof(GLfloat),
+                              (GLvoid*)(3 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -688,7 +732,7 @@ int main(int argc, char** argv) {
 
                 // Draw Grid
                 glBindVertexArray(gVAO);
-                glDrawArrays(GL_LINES, 0, 64);
+                glDrawArrays(GL_LINES, 0, 128);
                 glBindVertexArray(0);
                 
                 // Draw Block
