@@ -21,6 +21,7 @@ void clearBoard();
 void newBlock();
 void refreshBlock();
 int refreshBoard();
+matrix_t* rotateShaft(int);
 
 // --- //
 
@@ -42,8 +43,11 @@ GLuint bVAO;  // Block
 GLuint bVBO;
 GLuint fVAO;  // Board's Fruits
 GLuint fVBO;
-GLuint aVAO;  // Robot Arm
-GLuint aVBO;
+GLuint aVAO[3];  // Robot Arm
+GLuint aVBO[3];
+
+// Transformable Model Matrices
+matrix_t* sModel = NULL;
 
 // Timing Info
 GLfloat deltaTime = 0.0f;
@@ -136,6 +140,10 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         // Pan right.
                         x -= 5;
                         cogcPan(camera,x,0);
+                } else if(keys[GLFW_KEY_A]) {
+                        sModel = rotateShaft(1);
+                } else if(keys[GLFW_KEY_D]) {
+                        sModel = rotateShaft(-1);
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -492,6 +500,9 @@ int refreshBoard() {
 
 /* Initialize the Robot Arm visuals */
 void initArm() {
+        GLuint i;
+
+        // Location and Normal data
         GLfloat base[216] = {
                 -0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
                 0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -536,26 +547,89 @@ void initArm() {
                 -0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f
         };
 
+        // Lower Shaft of Arm
+        GLfloat shaft[216] = {
+                -0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                -0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                -0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+
+                -0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                -0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                -0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+
+                -0.1f,  0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f,  0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f,  0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
+
+                0.1f,  0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f,  0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f,  0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
+
+                -0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
+                -0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
+                -0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
+
+                -0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
+                -0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
+                -0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f
+        };
+
         debug("Initializing Robot Arm.");
 
-        // Set up VAO/VBO
-        glGenVertexArrays(1,&aVAO);
-        glBindVertexArray(aVAO);
-        glGenBuffers(1,&aVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, aVBO);
+        // Set up Base VAO/VBO
+        glGenVertexArrays(1,&aVAO[0]);
+        glBindVertexArray(aVAO[0]);
+        glGenBuffers(1,&aVBO[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, aVBO[0]);
         glBufferData(GL_ARRAY_BUFFER,sizeof(base),
                      base,GL_STATIC_DRAW);
 
-        // Tell OpenGL how to process Grid Vertices
-        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),(GLvoid*)0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),
-                              (GLvoid*)(3 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(1);
-        glBindVertexArray(0);  // Reset the VAO binding.
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        // Set up Lower Shaft VAO/VBO
+        glGenVertexArrays(1,&aVAO[1]);
+        glBindVertexArray(aVAO[1]);
+        glGenBuffers(1,&aVBO[1]);
+        glBindBuffer(GL_ARRAY_BUFFER, aVBO[1]);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(shaft),
+                     shaft,GL_STATIC_DRAW);
+
+        for(i = 0; i < 2; i++) {
+                glBindVertexArray(aVAO[i]);
+                glBindBuffer(GL_ARRAY_BUFFER, aVBO[i]);
+
+                // Tell OpenGL how to process Grid Vertices
+                glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                                      6 * sizeof(GLfloat),(GLvoid*)0);
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
+                                      6 * sizeof(GLfloat),
+                                      (GLvoid*)(3 * sizeof(GLfloat)));
+                glEnableVertexAttribArray(1);
+                glBindVertexArray(0);  // Reset the VAO binding.
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+}
+
+/* `dir` should be -1 or 1 */
+matrix_t* rotateShaft(int dir) {
+        return coglM4Rotate(sModel, dir * tau/32, 0,0,1);
 }
 
 /* Removes any solid lines, if it can */
@@ -760,12 +834,17 @@ int main(int argc, char** argv) {
         tModel = coglMScale(tModel,2.0/450);
         check(tModel, "Matrix transformation failed.");
 
-        // Model Matrix for Robot Arm
+        // Model Matrix for Robot Arm Base
         matrix_t* aModel = coglMIdentity(4);
         aModel = coglMScale(aModel,0.5);
         aModel = coglM4Translate(aModel,-1.1,-1.25,0);
         check(aModel, "Matrix transformation failed.");
-        
+
+        // Model Matrix for Robot Arm Shaft
+        sModel = coglMIdentity(4);
+        sModel = coglM4Translate(sModel,-1.1,-0.5,0);
+        check(sModel, "Matrix transformation failed.");
+
         // Projection Matrix
         matrix_t* proj = coglMPerspectiveP(tau/8, 
                                            (float)wWidth/(float)wHeight,
@@ -777,7 +856,13 @@ int main(int argc, char** argv) {
         glUseProgram(armShader);
         matrix_t* lightPos = coglV3(1.2f,1.0f,2.0f);
         GLuint lightPosLoc = glGetUniformLocation(armShader,"lightPos");
+        GLuint cubeL  = glGetUniformLocation(armShader,"cubeColour");
+        GLuint lightL = glGetUniformLocation(armShader,"lightColour");
+
         glUniform3f(lightPosLoc,lightPos->m[0],lightPos->m[1],lightPos->m[2]);
+        //glUniform3f(cubeL,1.0f,0.5f,0.31f);
+        glUniform3f(cubeL,0.25f,0.25,1);
+        glUniform3f(lightL,1.0f,1.0f,1.0f);
         
         debug("Entering Loop.");
         // Render until you shouldn't.
@@ -829,16 +914,9 @@ int main(int argc, char** argv) {
                 glDrawArrays(GL_TRIANGLES,0,7200);
                 glBindVertexArray(0);
 
-                // Draw Arm
+                // Draw Arm Base
                 glUseProgram(armShader);
-
-                GLuint cubeL  = glGetUniformLocation(armShader,"cubeColour");
-                GLuint lightL = glGetUniformLocation(armShader,"lightColour");
-
-                //glUniform3f(cubeL,1.0f,0.5f,0.31f);
-                glUniform3f(cubeL,1.0f,0,0);
-                glUniform3f(lightL,1.0f,1.0f,1.0f);
-
+                               
                 modlLoc = glGetUniformLocation(armShader,"model");
                 viewLoc = glGetUniformLocation(armShader,"view");
                 projLoc = glGetUniformLocation(armShader,"proj");
@@ -847,7 +925,13 @@ int main(int argc, char** argv) {
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
 
-                glBindVertexArray(aVAO);
+                glBindVertexArray(aVAO[0]);
+                glDrawArrays(GL_TRIANGLES,0,36);
+                glBindVertexArray(0);
+
+                // Draw Arm Shaft
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,sModel->m);
+                glBindVertexArray(aVAO[1]);
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
