@@ -29,6 +29,7 @@ matrix_t* rotateShaft(int);
 // 6 floats per vertex, 3 vertices per triangle, 12 triangles per Cell
 #define CELL_FLOATS 6 * 3 * 12
 #define TOTAL_FLOATS BOARD_CELLS * CELL_FLOATS
+#define SHAFT_LEN 0.8  // Actually half of the total shaft length.
 #define wWidth 650
 #define wHeight 720
 
@@ -549,47 +550,47 @@ void initArm() {
 
         // Lower Shaft of Arm
         GLfloat shaft[216] = {
-                -0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
-                0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
-                0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
-                0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
-                -0.1f,  0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
-                -0.1f, -0.8f, -0.1f,  0.0f,  0.0f, -1.0f,
+                -0.1f, -SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f, -SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f,  SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
+                0.1f,  SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
+                -0.1f,  SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
+                -0.1f, -SHAFT_LEN, -0.1f,  0.0f,  0.0f, -1.0f,
 
-                -0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
-                0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
-                0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
-                0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
-                -0.1f,  0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
-                -0.1f, -0.8f,  0.1f,  0.0f,  0.0f, 1.0f,
+                -0.1f, -SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f, -SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
+                -0.1f,  SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
+                -0.1f, -SHAFT_LEN,  0.1f,  0.0f,  0.0f, 1.0f,
 
-                -0.1f,  0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
-                -0.1f,  0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
-                -0.1f, -0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
-                -0.1f, -0.8f, -0.1f, -1.0f,  0.0f,  0.0f,
-                -0.1f, -0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
-                -0.1f,  0.8f,  0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f,  SHAFT_LEN,  0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f,  SHAFT_LEN, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -SHAFT_LEN, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -SHAFT_LEN, -0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f, -SHAFT_LEN,  0.1f, -1.0f,  0.0f,  0.0f,
+                -0.1f,  SHAFT_LEN,  0.1f, -1.0f,  0.0f,  0.0f,
 
-                0.1f,  0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
-                0.1f,  0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
-                0.1f, -0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
-                0.1f, -0.8f, -0.1f,  1.0f,  0.0f,  0.0f,
-                0.1f, -0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
-                0.1f,  0.8f,  0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f,  SHAFT_LEN, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -SHAFT_LEN, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -SHAFT_LEN, -0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f, -SHAFT_LEN,  0.1f,  1.0f,  0.0f,  0.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  1.0f,  0.0f,  0.0f,
 
-                -0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
-                0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
-                0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
-                0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
-                -0.1f, -0.8f,  0.1f,  0.0f, -1.0f,  0.0f,
-                -0.1f, -0.8f, -0.1f,  0.0f, -1.0f,  0.0f,
+                -0.1f, -SHAFT_LEN, -0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -SHAFT_LEN, -0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -SHAFT_LEN,  0.1f,  0.0f, -1.0f,  0.0f,
+                0.1f, -SHAFT_LEN,  0.1f,  0.0f, -1.0f,  0.0f,
+                -0.1f, -SHAFT_LEN,  0.1f,  0.0f, -1.0f,  0.0f,
+                -0.1f, -SHAFT_LEN, -0.1f,  0.0f, -1.0f,  0.0f,
 
-                -0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f,
-                0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f,
-                0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
-                0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
-                -0.1f,  0.8f,  0.1f,  0.0f,  1.0f,  0.0f,
-                -0.1f,  0.8f, -0.1f,  0.0f,  1.0f,  0.0f
+                -0.1f,  SHAFT_LEN, -0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  SHAFT_LEN, -0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  0.0f,  1.0f,  0.0f,
+                0.1f,  SHAFT_LEN,  0.1f,  0.0f,  1.0f,  0.0f,
+                -0.1f,  SHAFT_LEN,  0.1f,  0.0f,  1.0f,  0.0f,
+                -0.1f,  SHAFT_LEN, -0.1f,  0.0f,  1.0f,  0.0f
         };
 
         debug("Initializing Robot Arm.");
@@ -629,7 +630,19 @@ void initArm() {
 
 /* `dir` should be -1 or 1 */
 matrix_t* rotateShaft(int dir) {
-        return coglM4Rotate(sModel, dir * tau/32, 0,0,1);
+        static GLfloat angle = 0.0f;
+
+        angle += dir * tau/64;
+
+        if(angle > tau/16) {
+                angle = tau/16;
+                return sModel;
+        } else if(angle < -tau/16) {
+                angle = -tau/16;
+                return sModel;
+        }
+
+        return coglM4Rotate(sModel, dir * tau/64, 0,0,1);
 }
 
 /* Removes any solid lines, if it can */
@@ -841,9 +854,18 @@ int main(int argc, char** argv) {
         check(aModel, "Matrix transformation failed.");
 
         // Model Matrix for Robot Arm Shaft
+        // `sModel` is also rotated by other code.
         sModel = coglMIdentity(4);
-        sModel = coglM4Translate(sModel,-1.1,-0.5,0);
+        sModel = coglM4Translate(sModel,-1.1,-0.35,0);
+        matrix_t* sModelTr = coglMCopy(sModel);  // Just the translation.
+        matrix_t* shift    = NULL;     // A shifting factor after rotation.
+        matrix_t* sModelFinal = NULL;  // Final form of the Shaft ModelM.
+        matrix_t* bottom   = coglV4(0,-SHAFT_LEN,0,1);
+        matrix_t* botTR    = NULL;  // Bottom point, translated and rotated
+        matrix_t* botJT    = NULL;  // Bottom point, just translated.
+        matrix_t* botDiff  = NULL;  // The difference between those two.
         check(sModel, "Matrix transformation failed.");
+        check(sModelTr, "sModelTr Matrix copy failed.");
 
         // Projection Matrix
         matrix_t* proj = coglMPerspectiveP(tau/8, 
@@ -929,8 +951,25 @@ int main(int argc, char** argv) {
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
-                // Draw Arm Shaft
-                glUniformMatrix4fv(modlLoc,1,GL_FALSE,sModel->m);
+                /* Draw Arm Shaft */
+                // Calculate new post-rotation shift.
+                if(botTR)       { coglMDestroy(botTR);       }
+                if(botJT)       { coglMDestroy(botJT);       }
+                if(botDiff)     { coglMDestroy(botDiff);     }
+                if(shift)       { coglMDestroy(shift);       }
+                if(sModelFinal) { coglMDestroy(sModelFinal); }
+
+                botTR    = coglMMultiplyP(sModel,bottom);
+                botJT    = coglMMultiplyP(sModelTr,bottom);
+                botDiff  = coglMSubP(botJT,botTR);
+                shift = coglMIdentity(4);
+                shift = coglM4Translate(shift,
+                                        botDiff->m[0],
+                                        botDiff->m[1],
+                                        botDiff->m[2]);
+                sModelFinal = coglMMultiplyP(sModel,shift);
+
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,sModelFinal->m);
                 glBindVertexArray(aVAO[1]);
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
