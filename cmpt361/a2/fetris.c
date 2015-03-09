@@ -861,7 +861,7 @@ int main(int argc, char** argv) {
 
         glUniform3f(lightPosLoc,lightPos->m[0],lightPos->m[1],lightPos->m[2]);
         //glUniform3f(cubeL,1.0f,0.5f,0.31f);
-        glUniform3f(cubeL,0.25f,0.25,1);
+        glUniform3f(cubeL,0.4,0.78,0.89);
         glUniform3f(lightL,1.0f,1.0f,1.0f);
         
         debug("Entering Loop.");
