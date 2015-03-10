@@ -2,6 +2,8 @@
 
 #include "block.h"
 #include "cog/dbg.h"
+#include "defines.h"
+#include "util.h"
 
 // --- //
 
@@ -10,17 +12,17 @@
  * A, B, and D in that order. C is always at (0,0) in Block Space,
  * so we need not list it here.
  */
-int iBlock[2][6] = {{ -2,0, -1,0, 1,0  },
-                    { 0,-2, 0,-1, 0,1  }};
-int sBlock[2][6] = {{ -1,-1, 0,-1, 1,0 },
-                    { 1,-1, 1,0, 0,1   }};
-int zBlock[2][6] = {{ 1,-1, 0,-1, -1,0 },
-                    { -1,-1, -1,0, 0,1 }};
-int lBlock[4][6] = {{ -1,-1, -1,0, 1,0 },
-                    { 1,-1, 0,-1, 0,1  },
-                    { 1,1, 1,0, -1,0   },
-                    { -1,1, 0,1, 0,-1  }};
-int oBlock[1][6] = {{ -1,0, -1,-1, 0,-1 }};
+GLint iBlock[2][6] = {{ -2,0, -1,0, 1,0  },
+                      { 0,-2, 0,-1, 0,1  }};
+GLint sBlock[2][6] = {{ -1,-1, 0,-1, 1,0 },
+                      { 1,-1, 1,0, 0,1   }};
+GLint zBlock[2][6] = {{ 1,-1, 0,-1, -1,0 },
+                      { -1,-1, -1,0, 0,1 }};
+GLint lBlock[4][6] = {{ -1,-1, -1,0, 1,0 },
+                      { 1,-1, 0,-1, 0,1  },
+                      { 1,1, 1,0, -1,0   },
+                      { -1,1, 0,1, 0,-1  }};
+GLint oBlock[1][6] = {{ -1,0, -1,-1, 0,-1 }};
 
 // Fruit Colours
 GLfloat black[]  = { 0.0, 0.0, 0.0 };
@@ -29,13 +31,6 @@ GLfloat red[]    = { 1.0,  0.56, 0.56 };
 GLfloat yellow[] = { 1.0,  1.0,  0.52 };
 GLfloat green[]  = { 0.66, 0.99, 0.56 };
 GLfloat orange[] = { 1.0,  0.78, 0.28 };
-/*
-GLfloat purple[] = { 1.0, 0.0, 1.0 };
-GLfloat red[]    = { 1.0, 0.0, 0.0 };
-GLfloat yellow[] = { 1.0, 1.0, 0.0 };
-GLfloat green[]  = { 0.0, 1.0, 0.0 };
-GLfloat orange[] = { 1.0, 0.5, 0.0 };
-*/
 
 // --- //
 
@@ -50,8 +45,8 @@ block_t* newI() {
         b->coords = &iBlock[0][0];
         b->variations = 2;
         b->curr = 0;
-        b->x = 5;
-        b->y = 19;
+        b->x = 0.0f;
+        b->y = 0.0f;
         b->fs = fs;
         b->name = 'I';
 
@@ -71,8 +66,8 @@ block_t* newS() {
         b->coords = &sBlock[0][0];
         b->variations = 2;
         b->curr = 0;
-        b->x = 5;
-        b->y = 19;
+        b->x = 0.0f;
+        b->y = 0.0f;
         b->fs = fs;
         b->name = 'S';
 
@@ -92,8 +87,8 @@ block_t* newZ() {
         b->coords = &zBlock[0][0];
         b->variations = 2;
         b->curr = 0;
-        b->x = 5;
-        b->y = 19;
+        b->x = 0.0f;
+        b->y = 0.0f;
         b->fs = fs;
         b->name = 'Z';
 
@@ -113,8 +108,8 @@ block_t* newL() {
         b->coords = &lBlock[0][0];
         b->variations = 4;
         b->curr = 0;
-        b->x = 5;
-        b->y = 19;
+        b->x = 0.0f;
+        b->y = 0.0f;
         b->fs = fs;
         b->name = 'L';
 
@@ -134,8 +129,8 @@ block_t* newO() {
         b->coords = &oBlock[0][0];
         b->variations = 1;
         b->curr = 0;
-        b->x = 5;
-        b->y = 19;
+        b->x = 0.0f;
+        b->y = 0.0f;
         b->fs = fs;
         b->name = 'O';
 
@@ -183,6 +178,135 @@ GLfloat* fruitColour(Fruit f) {
         }
 
         return colour;
+}
+
+/* Coordinate/Colour Data of a given Block */
+GLfloat* blockCoords(block_t* block) {
+        GLfloat* temp1;
+        GLfloat* temp2;
+        GLfloat* cs = NULL;
+
+        check(block, "Null Block given.");
+
+        // 4 cells, each has 36 vertices of 6 data points each.
+        //GLfloat* cs = malloc(sizeof(GLfloat) * 4 * 36 * 6);
+        //check_mem(cs);
+
+        // Coords and colours for each cell.
+        GLfloat* a = cellCoords(block->x, block->y,
+                                block->coords[0],block->coords[1],
+                                block->fs[0]);
+        GLfloat* b = cellCoords(block->x, block->y,
+                                block->coords[2],block->coords[3],
+                                block->fs[1]);
+        GLfloat* c = cellCoords(block->x, block->y,
+                                0,0,
+                                block->fs[2]);
+        GLfloat* d = cellCoords(block->x, block->y,
+                                block->coords[4],block->coords[5],
+                                block->fs[3]);
+
+        check(a && b && c && d, "Couldn't get Cell coordinates.");
+
+         // Construct return value
+        temp1 = append(a, CELL_FLOATS, b, CELL_FLOATS);
+        temp2 = append(c, CELL_FLOATS, d, CELL_FLOATS);
+        cs    = append(temp1, CELL_FLOATS * 2, temp2, CELL_FLOATS * 2);
+        check(cs, "Couldn't construct final list of coords/colours.");
+
+        free(temp1); free(temp2);
+        free(a); free(b); free(c); free(d);
+
+        return cs;
+ error:
+        if(cs) { free(cs); }
+        return NULL;
+}
+
+/* Coordinate/Colour Data for a Cell of the Block
+ * x:    x-coord of C Cell in World Space
+ * y:    y-coord of C Cell in World Space
+ * xoff: Block-space x-offset from C for this Cell
+ * yoff: Block-space y-offset from C for this Cell
+ */
+GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f) {
+        GLfloat* coords = NULL;
+        GLfloat* c      = fruitColour(f);
+        GLuint i;
+
+        GLfloat temp[CELL_FLOATS] = {
+                // Back T1
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Back T2
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Front T1
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                // Front T2
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                // Left T1
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                // Left T2
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                // Right T1
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                // Right T2
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Top T1
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Top T2
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y+16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Bottom T1
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                // Bottom T2
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, 16.5, c[0], c[1], c[2],
+                x-16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
+                x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2]
+        };
+
+        check(x > -1 && x < 10 &&
+              y > -1 && x < 20,
+              "Invalid coords given.");
+
+        coords = malloc(sizeof(GLfloat) * CELL_FLOATS);
+        check_mem(coords);
+
+        if(f == None) {
+                // Nullify all the coordinates
+                for(i = 0; i < CELL_FLOATS; i++) {
+                        temp[i] = 0.0;
+                }
+        }
+
+        // Copy values.
+        for(i = 0; i < CELL_FLOATS; i++) {
+                coords[i] = temp[i];
+        }
+
+        return coords;
+ error:
+        return NULL;
 }
 
 /* Generate a random Block */

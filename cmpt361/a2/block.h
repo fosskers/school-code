@@ -7,12 +7,12 @@ typedef enum { None, Grape, Apple, Banana, Pear, Orange } Fruit;
 
 typedef struct block_t {
         // Block Shape/Rotation
-        int* coords;     // Set of all "Block Space" coordinates
-        int variations;  // How many "images" does this block have?
-        int curr;        // Which variation are we on?
-        // Block's grid coordinates (coord of C block)
-        int x;
-        int y;
+        GLint* coords;     // Set of all "Block Space" coordinates
+        GLint variations;  // How many "images" does this block have?
+        GLint curr;        // Which variation are we on?
+        // Block's World-space coordinates (coord of C block)
+        GLfloat x;
+        GLfloat y;
         // Block Colours
         Fruit* fs;
         // Which Block is it?
@@ -41,6 +41,17 @@ Fruit* randFruits();
 
 /* Get the colour of a Fruit. Cannot fail */
 GLfloat* fruitColour(Fruit f);
+
+/* Coordinate/Colour Data of a given Block */
+GLfloat* blockCoords(block_t* b);
+
+/* Coordinate/Colour Data for a Cell of the Block
+ * x:    x-coord of C Cell in World Space
+ * y:    y-coord of C Cell in World Space
+ * xoff: Block-space x-offset from C for this Cell
+ * yoff: Block-space y-offset from C for this Cell
+ */
+GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f);
 
 /* Generate a random Block */
 block_t* randBlock();

@@ -6,11 +6,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "collision.h"
 #include "block.h"
 #include "cog/camera/camera.h"
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
+#include "collision.h"
+#include "defines.h"
 #include "util.h"
 
 // --- //
@@ -26,14 +27,6 @@ matrix_t* rotateUShaft(int);
 matrix_t* resetShaft(matrix_t*);
 
 // --- //
-
-#define BOARD_CELLS 200
-// 6 floats per vertex, 3 vertices per triangle, 12 triangles per Cell
-#define CELL_FLOATS 6 * 3 * 12
-#define TOTAL_FLOATS BOARD_CELLS * CELL_FLOATS
-#define SHAFT_LEN 0.7  // Actually half of the total shaft length.
-#define wWidth 650
-#define wHeight 720
 
 // Global state info
 bool gameOver = false;
@@ -96,7 +89,7 @@ void newBlock() {
 }
 
 void refreshBlock() {
-        GLfloat* coords = blockToCoords();
+        GLfloat* coords = blockCoords(block);
         
         glBindVertexArray(bVAO);
         glBindBuffer(GL_ARRAY_BUFFER, bVBO);
@@ -133,16 +126,9 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         resetCamera();
                 } else if(key == GLFW_KEY_R) {
                         resetGame();
-                } else if(keys[GLFW_KEY_UP] && block->y < 19) {
-                        block_t* copy = copyBlock(block);
-                        copy = rotateBlock(copy);
-                        if(isColliding(copy,board) == Clear) {
-                                block = rotateBlock(block);
-                                destroyBlock(copy);
-                                refreshBlock();
-                        } else {
-                                debug("Flip would collide!");
-                        }
+                } else if(keys[GLFW_KEY_UP]) {
+                        block = rotateBlock(block);
+                        refreshBlock();
                 } else if(keys[GLFW_KEY_LEFT_CONTROL] &&
                           keys[GLFW_KEY_LEFT]) {
                         // Pan left.
@@ -175,7 +161,7 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         GLfloat* coords = NULL;
         GLfloat* c      = fruitColour(f);
         GLuint i;
-        // TODO: This is wrong.
+
         GLfloat temp[CELL_FLOATS] = {
                 // Back T1
                 33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
@@ -300,7 +286,7 @@ int initBlock() {
 
         debug("Initializing Block.");
 
-        GLfloat* coords = blockToCoords();
+        GLfloat* coords = blockCoords(block);
         
         // Set up VAO/VBO
         glGenVertexArrays(1,&bVAO);
@@ -835,49 +821,6 @@ void fruitCheck() {
         }
 }
 
-/* Scrolls the Block naturally down */
-void scrollBlock() {
-        static double lastTime = 0;
-        double currTime = glfwGetTime();
-        int* cells = NULL;
-        int i,j;
-
-        if(!running) {
-                return;
-        }
-        
-        if(isColliding(block, board) != Bottom) {
-                if(currTime - lastTime > 0.5) {
-
-                        lastTime = currTime;
-                        block->y -= 1;
-
-                        GLfloat* coords = blockToCoords();
-        
-                        glBindVertexArray(bVAO);
-                        glBindBuffer(GL_ARRAY_BUFFER, bVBO);
-                        glBufferSubData(GL_ARRAY_BUFFER, 0, 
-                                        CELL_FLOATS * 4 * sizeof(GLfloat),
-                                        coords);
-                        glBindVertexArray(0);
-                }
-        } else if(block->y == 19) {
-                gameOver = true;
-        } else {
-                cells = blockCells(block);
-
-                // Add the Block's cells to the master Board
-                for(i = 0,j=0; i < 8; i+=2,j++) {
-                        board[cells[i] + 10*cells[i+1]] = block->fs[j];
-                }
-
-                lineCheck();
-                fruitCheck();
-                newBlock();
-                refreshBoard();
-        }
-}
-
 int main(int argc, char** argv) {
         // Initial settings.
         glfwInit();
@@ -934,13 +877,20 @@ int main(int argc, char** argv) {
         matrix_t* tModel = coglMIdentity(4);
         tModel = coglM4Translate(tModel,-200,-360,0);
         tModel = coglMScale(tModel,2.0/450);
-        check(tModel, "Matrix transformation failed.");
+        check(tModel, "tModel creation failed.");
+
+        // Model Matrix for Block
+        matrix_t* bModel = coglMIdentity(4);
+        bModel = coglMScale(bModel,2.0/450);
+        bModel = coglM4Translate(bModel,-1.1,-1.25,0);
+        matrix_t* bModelFinal = NULL;
+        check(bModel, "bModel creation failed.");
 
         // Model Matrix for Robot Arm Base
         matrix_t* aModel = coglMIdentity(4);
         aModel = coglMScale(aModel,0.5);
         aModel = coglM4Translate(aModel,-1.1,-1.25,0);
-        check(aModel, "Matrix transformation failed.");
+        check(aModel, "aModel creation failed.");
 
         // Model Matrix for Robot Arm Shaft
         // `lModel` is also rotated by other code.
@@ -950,7 +900,7 @@ int main(int argc, char** argv) {
         matrix_t* shift = NULL;
         matrix_t* lModelFinal = NULL;
         matrix_t* uModelFinal = NULL;
-        check(uModel, "Matrix copy failed.");
+        check(uModel, "uModel creation failed.");
 
         // Projection Matrix
         matrix_t* proj = coglMPerspectiveP(tau/8, 
@@ -987,46 +937,17 @@ int main(int argc, char** argv) {
 
                 glClearColor(0.1f,0.1f,0.1f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                glUseProgram(tetrisShader);
-
-                // Move the block down.
-                scrollBlock();
-
-                GLuint modlLoc = glGetUniformLocation(tetrisShader,"model");
-                GLuint viewLoc = glGetUniformLocation(tetrisShader,"view");
-                GLuint projLoc = glGetUniformLocation(tetrisShader,"proj");
-
+                
                 // Update View Matrix
                 coglMDestroy(view);
                 view = coglM4LookAtP(camera->pos,camera->tar,camera->up);
 
-                // Set transformation Matrices
-                glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
-                glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
-                glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
-
-                // Draw Grid
-                glBindVertexArray(gVAO);
-                glDrawArrays(GL_LINES, 0, 128);
-                glBindVertexArray(0);
-                
-                // Draw Block
-                glBindVertexArray(bVAO);
-                glDrawArrays(GL_TRIANGLES,0,36 * 4);
-                glBindVertexArray(0);
-
-                // Draw Board
-                glBindVertexArray(fVAO);
-                glDrawArrays(GL_TRIANGLES,0,7200);
-                glBindVertexArray(0);
-
-                // Draw Arm Base
+                /* Draw Arm Base */
                 glUseProgram(armShader);
                                
-                modlLoc = glGetUniformLocation(armShader,"model");
-                viewLoc = glGetUniformLocation(armShader,"view");
-                projLoc = glGetUniformLocation(armShader,"proj");
+                GLuint modlLoc = glGetUniformLocation(armShader,"model");
+                GLuint viewLoc = glGetUniformLocation(armShader,"view");
+                GLuint projLoc = glGetUniformLocation(armShader,"proj");
 
                 glUniformMatrix4fv(modlLoc,1,GL_FALSE,aModel->m);
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
@@ -1063,6 +984,38 @@ int main(int argc, char** argv) {
                 glUniformMatrix4fv(modlLoc,1,GL_FALSE,uModelFinal->m);
                 glBindVertexArray(aVAO[2]);
                 glDrawArrays(GL_TRIANGLES,0,36);
+                glBindVertexArray(0);
+
+                // Set transformation Matrices
+                glUseProgram(tetrisShader);
+
+                modlLoc = glGetUniformLocation(tetrisShader,"model");
+                viewLoc = glGetUniformLocation(tetrisShader,"view");
+                projLoc = glGetUniformLocation(tetrisShader,"proj");
+
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
+                glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
+                glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
+
+                /* Draw Grid */
+                glBindVertexArray(gVAO);
+                glDrawArrays(GL_LINES, 0, 128);
+                glBindVertexArray(0);
+
+                /* Draw Board */
+                glBindVertexArray(fVAO);
+                glDrawArrays(GL_TRIANGLES,0,7200);
+                glBindVertexArray(0);
+
+                /* Draw Block */
+                if(bModelFinal) { coglMDestroy(bModelFinal); }
+                shift->m[12] += adj;
+                shift->m[13] += opp;
+                bModelFinal = coglMMultiplyP(shift,bModel);
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,bModelFinal->m);
+
+                glBindVertexArray(bVAO);
+                glDrawArrays(GL_TRIANGLES,0,36 * 4);
                 glBindVertexArray(0);
 
                 // Always comes last.
