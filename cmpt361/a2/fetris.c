@@ -23,6 +23,7 @@ void refreshBlock();
 int refreshBoard();
 matrix_t* rotateLShaft(int);
 matrix_t* rotateUShaft(int);
+matrix_t* resetShaft(matrix_t*);
 
 // --- //
 
@@ -30,7 +31,7 @@ matrix_t* rotateUShaft(int);
 // 6 floats per vertex, 3 vertices per triangle, 12 triangles per Cell
 #define CELL_FLOATS 6 * 3 * 12
 #define TOTAL_FLOATS BOARD_CELLS * CELL_FLOATS
-#define SHAFT_LEN 0.8  // Actually half of the total shaft length.
+#define SHAFT_LEN 0.7  // Actually half of the total shaft length.
 #define wWidth 650
 #define wHeight 720
 
@@ -79,6 +80,12 @@ void resetCamera() {
 
 /* Clears the board and starts over */
 void resetGame() {
+        debug("Restarting game.");
+
+        lShaftAngle = 0.0f;
+        uShaftAngle = 0.0f;
+        lModel = resetShaft(lModel);
+        uModel = resetShaft(uModel);
         initBoard();
         newBlock();
 }
@@ -693,9 +700,7 @@ void initArm() {
 /* `dir` should be -1 or 1 */
 matrix_t* rotateLShaft(int dir) {
         /* Reset lModel */
-        if(lModel) { coglMDestroy(lModel); }
-        lModel = coglMIdentity(4);
-        lModel = coglM4Translate(lModel,-1.1,-1.25,0);
+        resetShaft(lModel);
         lShaftAngle += dir * tau/64;
 
         if(lShaftAngle > tau/4) {
@@ -710,9 +715,7 @@ matrix_t* rotateLShaft(int dir) {
 /* TODO: Unnecessary repeated code? */
 matrix_t* rotateUShaft(int dir) {
         /* Reset uModel */
-        if(uModel) { coglMDestroy(uModel); }
-        uModel = coglMIdentity(4);
-        uModel = coglM4Translate(uModel,-1.1,-1.25,0);
+        resetShaft(uModel);
         uShaftAngle += dir * tau/64;
 
         if(uShaftAngle > tau/3) {
@@ -722,6 +725,13 @@ matrix_t* rotateUShaft(int dir) {
         }
 
         return coglM4Rotate(uModel, uShaftAngle, 0,0,1);
+}
+
+/* Reset a shaft's Model Matrix to its default values */
+matrix_t* resetShaft(matrix_t* s) {
+        if(s) { coglMDestroy(s); }
+        s = coglMIdentity(4);
+        return coglM4Translate(s,-1.1,-1.25,0);
 }
 
 /* Removes any solid lines, if it can */
