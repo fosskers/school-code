@@ -21,7 +21,8 @@ void clearBoard();
 void newBlock();
 void refreshBlock();
 int refreshBoard();
-matrix_t* rotateShaft(int);
+matrix_t* rotateLShaft(int);
+matrix_t* rotateUShaft(int);
 
 // --- //
 
@@ -49,8 +50,10 @@ GLuint aVAO[3];  // Robot Arm
 GLuint aVBO[3];
 
 // Transformable Model Matrices
-matrix_t* sModel = NULL;
-GLfloat shaft1Angle = 0.0f;
+matrix_t* lModel = NULL;
+matrix_t* uModel = NULL;
+GLfloat lShaftAngle = 0.0f;
+GLfloat uShaftAngle = 0.0f;
 
 // Timing Info
 GLfloat deltaTime = 0.0f;
@@ -144,9 +147,13 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         x -= 5;
                         cogcPan(camera,x,0);
                 } else if(keys[GLFW_KEY_A]) {
-                        sModel = rotateShaft(1);
+                        lModel = rotateLShaft(1);
                 } else if(keys[GLFW_KEY_D]) {
-                        sModel = rotateShaft(-1);
+                        lModel = rotateLShaft(-1);
+                } else if(keys[GLFW_KEY_W]) {
+                        uModel = rotateUShaft(1);
+                } else if(keys[GLFW_KEY_S]) {
+                        uModel = rotateUShaft(-1);
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -595,6 +602,51 @@ void initArm() {
                 -0.1f, SHAFT_LEN, -0.1f,  0.0f,  1.0f,  0.0f
         };
 
+        // Upper Shaft of Arm
+        GLfloat ushaft[216] = {
+                -SHAFT_LEN, -0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+                SHAFT_LEN,  -0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+                SHAFT_LEN,   0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+                SHAFT_LEN,   0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+                -SHAFT_LEN,  0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+                -SHAFT_LEN, -0.1f, -0.1f,  0.0f,  0.0f, -1.0f,
+
+                -SHAFT_LEN, -0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+                SHAFT_LEN,  -0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+                SHAFT_LEN,   0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+                SHAFT_LEN,   0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+                -SHAFT_LEN,  0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+                -SHAFT_LEN, -0.1f,  0.1f,  0.0f,  0.0f, 1.0f,
+
+                -SHAFT_LEN,  0.1f,  0.1f, -1.0f,  0.0f,  0.0f,
+                -SHAFT_LEN,  0.1f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -SHAFT_LEN, -0.1f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -SHAFT_LEN, -0.1f, -0.1f, -1.0f,  0.0f,  0.0f,
+                -SHAFT_LEN, -0.1f,  0.1f, -1.0f,  0.0f,  0.0f,
+                -SHAFT_LEN,  0.1f,  0.1f, -1.0f,  0.0f,  0.0f,
+
+                SHAFT_LEN,  0.1f,  0.1f,  1.0f,  0.0f,  0.0f,
+                SHAFT_LEN,  0.1f, -0.1f,  1.0f,  0.0f,  0.0f,
+                SHAFT_LEN, -0.1f, -0.1f,  1.0f,  0.0f,  0.0f,
+                SHAFT_LEN, -0.1f, -0.1f,  1.0f,  0.0f,  0.0f,
+                SHAFT_LEN, -0.1f,  0.1f,  1.0f,  0.0f,  0.0f,
+                SHAFT_LEN,  0.1f,  0.1f,  1.0f,  0.0f,  0.0f,
+
+                -SHAFT_LEN, -0.1f, -0.1f,  0.0f, -1.0f,  0.0f,
+                SHAFT_LEN,  -0.1f, -0.1f,  0.0f, -1.0f,  0.0f,
+                SHAFT_LEN,  -0.1f,  0.1f,  0.0f, -1.0f,  0.0f,
+                SHAFT_LEN,  -0.1f,  0.1f,  0.0f, -1.0f,  0.0f,
+                -SHAFT_LEN, -0.1f,  0.1f,  0.0f, -1.0f,  0.0f,
+                -SHAFT_LEN, -0.1f, -0.1f,  0.0f, -1.0f,  0.0f,
+
+                -SHAFT_LEN, 0.1f, -0.1f,  0.0f,  1.0f,  0.0f,
+                SHAFT_LEN,  0.1f, -0.1f,  0.0f,  1.0f,  0.0f,
+                SHAFT_LEN,  0.1f,  0.1f,  0.0f,  1.0f,  0.0f,
+                SHAFT_LEN,  0.1f,  0.1f,  0.0f,  1.0f,  0.0f,
+                -SHAFT_LEN, 0.1f,  0.1f,  0.0f,  1.0f,  0.0f,
+                -SHAFT_LEN, 0.1f, -0.1f,  0.0f,  1.0f,  0.0f
+        };
+
         debug("Initializing Robot Arm.");
 
         // Set up Base VAO/VBO
@@ -613,7 +665,15 @@ void initArm() {
         glBufferData(GL_ARRAY_BUFFER,sizeof(shaft),
                      shaft,GL_STATIC_DRAW);
 
-        for(i = 0; i < 2; i++) {
+        // Set up Upper Shaft VAO/VBO
+        glGenVertexArrays(1,&aVAO[2]);
+        glBindVertexArray(aVAO[2]);
+        glGenBuffers(1,&aVBO[2]);
+        glBindBuffer(GL_ARRAY_BUFFER, aVBO[2]);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(ushaft),
+                     ushaft,GL_STATIC_DRAW);
+        
+        for(i = 0; i < 3; i++) {
                 glBindVertexArray(aVAO[i]);
                 glBindBuffer(GL_ARRAY_BUFFER, aVBO[i]);
 
@@ -631,20 +691,37 @@ void initArm() {
 }
 
 /* `dir` should be -1 or 1 */
-matrix_t* rotateShaft(int dir) {
-        /* Reset sModel */
-        if(sModel) { coglMDestroy(sModel); }
-        sModel = coglMIdentity(4);
-        sModel = coglM4Translate(sModel,-1.1,-1.25,0);
-        shaft1Angle += dir * tau/64;
+matrix_t* rotateLShaft(int dir) {
+        /* Reset lModel */
+        if(lModel) { coglMDestroy(lModel); }
+        lModel = coglMIdentity(4);
+        lModel = coglM4Translate(lModel,-1.1,-1.25,0);
+        lShaftAngle += dir * tau/64;
 
-        if(shaft1Angle > tau/4) {
-                shaft1Angle = tau/4;
-        } else if(shaft1Angle < -tau/4) {
-                shaft1Angle = -tau/4;
+        if(lShaftAngle > tau/4) {
+                lShaftAngle = tau/4;
+        } else if(lShaftAngle < -tau/4) {
+                lShaftAngle = -tau/4;
         }
 
-        return coglM4Rotate(sModel, shaft1Angle, 0,0,1);
+        return coglM4Rotate(lModel, lShaftAngle, 0,0,1);
+}
+
+/* TODO: Unnecessary repeated code? */
+matrix_t* rotateUShaft(int dir) {
+        /* Reset uModel */
+        if(uModel) { coglMDestroy(uModel); }
+        uModel = coglMIdentity(4);
+        uModel = coglM4Translate(uModel,-1.1,-1.25,0);
+        uShaftAngle += dir * tau/64;
+
+        if(uShaftAngle > tau/3) {
+                uShaftAngle = tau/3;
+        } else if(uShaftAngle < -tau/3) {
+                uShaftAngle = -tau/3;
+        }
+
+        return coglM4Rotate(uModel, uShaftAngle, 0,0,1);
 }
 
 /* Removes any solid lines, if it can */
@@ -856,12 +933,14 @@ int main(int argc, char** argv) {
         check(aModel, "Matrix transformation failed.");
 
         // Model Matrix for Robot Arm Shaft
-        // `sModel` is also rotated by other code.
-        sModel = coglMIdentity(4);
-        sModel = coglM4Translate(sModel,-1.1,-1.25,0);
+        // `lModel` is also rotated by other code.
+        lModel = coglMIdentity(4);
+        lModel = coglM4Translate(lModel,-1.1,-1.25,0);
+        uModel = coglMCopy(lModel);
         matrix_t* shift = NULL;
-        matrix_t* sModelFinal = NULL;
-        check(sModel, "Matrix transformation failed.");
+        matrix_t* lModelFinal = NULL;
+        matrix_t* uModelFinal = NULL;
+        check(uModel, "Matrix copy failed.");
 
         // Projection Matrix
         matrix_t* proj = coglMPerspectiveP(tau/8, 
@@ -947,17 +1026,32 @@ int main(int argc, char** argv) {
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
-                /* Draw Arm Shaft */
+                /* Draw Arm Lower Shaft */
                 if(shift)       { coglMDestroy(shift);       }
-                if(sModelFinal) { coglMDestroy(sModelFinal); }
-                GLfloat adj = SHAFT_LEN * cos(tau/4 + shaft1Angle);
-                GLfloat opp = SHAFT_LEN * sin(tau/4 + shaft1Angle);
+                if(lModelFinal) { coglMDestroy(lModelFinal); }
+                GLfloat adj = SHAFT_LEN * cos(tau/4 + lShaftAngle);
+                GLfloat opp = SHAFT_LEN * sin(tau/4 + lShaftAngle);
                 shift = coglMIdentity(4);
                 shift = coglM4Translate(shift,adj,opp,0);
-                sModelFinal = coglMMultiplyP(shift,sModel);
+                lModelFinal = coglMMultiplyP(shift,lModel);
 
-                glUniformMatrix4fv(modlLoc,1,GL_FALSE,sModelFinal->m);
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,lModelFinal->m);
                 glBindVertexArray(aVAO[1]);
+                glDrawArrays(GL_TRIANGLES,0,36);
+                glBindVertexArray(0);
+
+                /* Draw Arm Upper Shaft */
+                if(uModelFinal) { coglMDestroy(uModelFinal); }
+                shift->m[12] *= 2;
+                shift->m[13] *= 2;
+                adj = SHAFT_LEN * cos(uShaftAngle);
+                opp = SHAFT_LEN * sin(uShaftAngle);
+                shift->m[12] += adj;
+                shift->m[13] += opp;
+                uModelFinal = coglMMultiplyP(shift,uModel);
+
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,uModelFinal->m);
+                glBindVertexArray(aVAO[2]);
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
