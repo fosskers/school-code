@@ -16,11 +16,13 @@
 
 // --- //
 
-void initBoard();
 void clearBoard();
+void fruitCheck();
+void initBoard();
+void lineCheck();
 void newBlock();
-void refreshBlock();
 void placeBlock();
+void refreshBlock();
 int refreshBoard();
 matrix_t* rotateLShaft(int);
 matrix_t* rotateUShaft(int);
@@ -127,6 +129,8 @@ void placeBlock() {
                         board[cells[i] + 10*cells[i+1]] = block->fs[j];
                 }
 
+                lineCheck();
+                fruitCheck();
                 refreshBoard();
                 newBlock();
         }
@@ -493,7 +497,7 @@ int refreshBoard() {
         GLuint i,j,k;
         GLfloat* cellData;
 
-        debug("Refreshing Board...");
+        //debug("Refreshing Board...");
         
         GLfloat* coords = malloc(sizeof(GLfloat) * TOTAL_FLOATS);
         check_mem(coords);
@@ -756,16 +760,10 @@ void lineCheck() {
                 }
 
                 if(fullRow) {
-                        debug("Found a full row!");
+                        log_info("Filled a full row!");
                         // Empty the row
                         for(j = 0; j < 10; j++) {
                                 board[i + j] = None;
-                        }
-
-                        // Drop the other pieces.
-                        // This is evil. C is stupid.
-                        for(i = i + j; i < BOARD_CELLS; i++) {
-                                board[i-10] = board[i];
                         }
 
                         break;
@@ -775,7 +773,7 @@ void lineCheck() {
 
 /* Removes sets of 3 matching Fruits, if it can */
 void fruitCheck() {
-        int i,j,k;
+        int i,j;
         Fruit curr;
         Fruit streakF = None;
         int streakN;
@@ -795,9 +793,8 @@ void fruitCheck() {
                                         board[i + (j-1)*10] = None;
                                         board[i + (j-2)*10] = None;
 
-                                        for(j = j+1; j < 20; j++) {
-                                                board[i+(j-3)*10] = board[i+j*10];
-                                        }
+                                        log_info("Matched Fruit!");
+
                                         break;
                                 }
                         } else {
@@ -822,15 +819,7 @@ void fruitCheck() {
                                         board[i-1 + j*10] = None;
                                         board[i-2 + j*10] = None;
 
-                                        for(k = j+1; k < 20; k++) {
-                                                board[i-2 + (k-1)*10] = board[i-2 + k*10];
-                                        }
-                                        for(k = j+1; k < 20; k++) {
-                                                board[i-1 + (k-1)*10] = board[i-1 + k*10];
-                                        }
-                                        for(k = j+1; k < 20; k++) {
-                                                board[i + (k-1)*10] = board[i + k*10];
-                                        }
+                                        log_info("Matched Fruit!");
                                 }
                         } else {
                                 streakF = curr;
