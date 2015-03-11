@@ -6,15 +6,10 @@
 
 // --- //
 
-typedef enum { Clear, Left, Right, Bottom } Collision;
-        
+/* Would dropping the Block result in a collision? */
+bool isColliding(block_t* b, Fruit* board);
 
-/* Is the given Block colliding with the world? */
-Collision isColliding(block_t* b, Fruit* fs);
-
-/* In which direction is the Block colliding? */
-bool collidingLeft(int*  cells, Fruit* fs);
-bool collidingRight(int* cells, Fruit* fs);
-bool collidingDown(int*  cells, Fruit* fs);
+/* Are all the Block's Cells within the Board? */
+bool isInBoard(block_t* b, matrix_t** centers);
 
 #endif

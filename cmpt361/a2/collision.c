@@ -4,59 +4,34 @@
 
 // --- //
 
-/* Is the given Block colliding with the world? */
-Collision isColliding(block_t* b, Fruit* fs) {
-        int* cells = blockCells(b);
+/* Would dropping the Block result in a collision? */
+bool isColliding(block_t* b, Fruit* board) {
+        check(b, "Null Block given.");
+        check(board, "Null Board given.");
 
-        if(collidingDown(cells, fs)) {
-                return Bottom;
-        } else if(collidingLeft(cells,fs)) {
-                return Left;
-                
-        } else if(collidingRight(cells,fs)) {
-                return Right;
-        }
-        else {
-                return Clear;
-        }
-}
-
-/* In which direction is the Block colliding? */
-bool collidingLeft(int* cells, Fruit* fs) {
-        int i;
-
-        for(i = 0; i < 8; i+=2) {
-                if(cells[i] == 0 ||
-                   fs[cells[i] - 1 + cells[i+1] * 10] != None) {
-                        return true;
-                }
-        }
-
+ error:
         return false;
 }
 
-bool collidingRight(int* cells, Fruit* fs) {
-        int i;
+/* Are all the Block's Cells within the Board? */
+bool isInBoard(block_t* b, matrix_t** centers) {
+        GLuint i;
 
-        for(i = 0; i < 8; i+=2) {
-                if(cells[i] == 9 ||
-                   fs[cells[i] + 1 + cells[i+1] * 10] != None) {
-                        return true;
+        check(b, "Null Block given.");
+
+        matrix_t* nearest = nearestCell(b, centers);
+        check(nearest, "Failed to find nearest Cell.");
+
+        for(i = 0; i < 6; i+=2) {
+                if(b->coords[i] + nearest->m[0] < 0   ||
+                   b->coords[i] + nearest->m[0] > 9   ||
+                   b->coords[i+1] + nearest->m[1] < 0 ||
+                   b->coords[i+1] + nearest->m[1] > 19) {
+                        return false;
                 }
         }
 
-        return false;
-}
-
-bool collidingDown(int* cells, Fruit* fs) {
-        int i;
-
-        for(i = 0; i < 8; i+=2) {
-                if(cells[i+1] == 0 ||
-                   fs[cells[i] + (cells[i+1] - 1) * 10] != None) {
-                        return true;
-                }
-        }
-
+        return true;
+ error:
         return false;
 }

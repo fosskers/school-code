@@ -20,6 +20,8 @@ typedef struct block_t {
         Fruit* fs;
         // Which Block is it?
         char name;
+        // Is the Block colliding with anything, or outside the Board?
+        bool colliding;
 } block_t;
 
 // --- //
@@ -54,7 +56,7 @@ GLfloat* blockCoords(block_t* b);
  * xoff: Block-space x-offset from C for this Cell
  * yoff: Block-space y-offset from C for this Cell
  */
-GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f);
+GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f, bool colliding);
 
 /* Finds the nearest Grid Cell (x,y) location to the given Block */
 matrix_t* nearestCell(block_t* b, matrix_t** centers);

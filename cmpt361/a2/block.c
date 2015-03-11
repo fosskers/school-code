@@ -50,6 +50,7 @@ block_t* newI() {
         b->y = 0.0f;
         b->fs = fs;
         b->name = 'I';
+        b->colliding = false;
 
         return b;
  error:
@@ -71,6 +72,7 @@ block_t* newS() {
         b->y = 0.0f;
         b->fs = fs;
         b->name = 'S';
+        b->colliding = false;
 
         return b;
  error:
@@ -92,6 +94,7 @@ block_t* newZ() {
         b->y = 0.0f;
         b->fs = fs;
         b->name = 'Z';
+        b->colliding = false;
 
         return b;
  error:
@@ -113,6 +116,7 @@ block_t* newL() {
         b->y = 0.0f;
         b->fs = fs;
         b->name = 'L';
+        b->colliding = false;
 
         return b;
  error:
@@ -134,6 +138,7 @@ block_t* newO() {
         b->y = 0.0f;
         b->fs = fs;
         b->name = 'O';
+        b->colliding = false;
 
         return b;
  error:
@@ -196,16 +201,20 @@ GLfloat* blockCoords(block_t* block) {
         // Coords and colours for each cell.
         GLfloat* a = cellCoords(block->x, block->y,
                                 block->coords[0],block->coords[1],
-                                block->fs[0]);
+                                block->fs[0],
+                                block->colliding);
         GLfloat* b = cellCoords(block->x, block->y,
                                 block->coords[2],block->coords[3],
-                                block->fs[1]);
+                                block->fs[1],
+                                block->colliding);
         GLfloat* c = cellCoords(block->x, block->y,
                                 0,0,
-                                block->fs[2]);
+                                block->fs[2],
+                                block->colliding);
         GLfloat* d = cellCoords(block->x, block->y,
                                 block->coords[4],block->coords[5],
-                                block->fs[3]);
+                                block->fs[3],
+                                block->colliding);
 
         check(a && b && c && d, "Couldn't get Cell coordinates.");
 
@@ -230,10 +239,16 @@ GLfloat* blockCoords(block_t* block) {
  * xoff: Block-space x-offset from C for this Cell
  * yoff: Block-space y-offset from C for this Cell
  */
-GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f) {
+GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f, bool colliding) {
         GLfloat* coords = NULL;
-        GLfloat* c      = fruitColour(f);
+        GLfloat* colour = fruitColour(f);
         GLuint i;
+        GLfloat c[] = { colour[0], colour[1], colour[2] };
+
+        // If the Block is colliding, colour it gray.
+        if(colliding) {
+                c[0] = 0.5; c[1] = 0.5; c[2] = 0.5;
+        }
 
         GLfloat temp[CELL_FLOATS] = {
                 // Back T1
@@ -285,10 +300,6 @@ GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f) {
                 x-16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2],
                 x+16.5 + 33*xoff, y-16.5 + 33*yoff, -16.5, c[0], c[1], c[2]
         };
-
-        check(x > -1 && x < 10 &&
-              y > -1 && x < 20,
-              "Invalid coords given.");
 
         coords = malloc(sizeof(GLfloat) * CELL_FLOATS);
         check_mem(coords);
@@ -458,6 +469,7 @@ block_t* copyBlock(block_t* b) {
         }
 
         newB->name = b->name;
+        newB->colliding = b->colliding;
 
         return newB;
  error:

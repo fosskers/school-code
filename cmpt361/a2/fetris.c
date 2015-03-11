@@ -94,8 +94,10 @@ void newBlock() {
 }
 
 void refreshBlock() {
+        block->colliding = !isInBoard(block,cellCenters);
+
         GLfloat* coords = blockCoords(block);
-        
+
         glBindVertexArray(bVAO);
         glBindBuffer(GL_ARRAY_BUFFER, bVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, 
@@ -166,12 +168,16 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         cogcPan(camera,x,0);
                 } else if(keys[GLFW_KEY_A]) {
                         lModel = rotateLShaft(1);
+                        refreshBlock();
                 } else if(keys[GLFW_KEY_D]) {
                         lModel = rotateLShaft(-1);
+                        refreshBlock();
                 } else if(keys[GLFW_KEY_W]) {
                         uModel = rotateUShaft(1);
+                        refreshBlock();
                 } else if(keys[GLFW_KEY_S]) {
                         uModel = rotateUShaft(-1);
+                        refreshBlock();
                 } else if(keys[GLFW_KEY_SPACE]) {
                         placeBlock();
                 }
