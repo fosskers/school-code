@@ -335,17 +335,17 @@ void initGrid(matrix_t* t) {
 		gridPoints[12*i]     = 33.0 + (33.0 * i);
                 gridPoints[12*i + 1] = 33.0;
                 gridPoints[12*i + 2] = -16.5;
-                // Bottom colour
-                gridPoints[12*i + 3] = 1;
-                gridPoints[12*i + 4] = 1;
+                // Bottom normal
+                gridPoints[12*i + 3] = 0;
+                gridPoints[12*i + 4] = 0;
                 gridPoints[12*i + 5] = 1;
                 // Top coord
 		gridPoints[12*i + 6] = 33.0 + (33.0 * i);
                 gridPoints[12*i + 7] = 693.0;
                 gridPoints[12*i + 8] = -16.5;
-                // Top colour
-                gridPoints[12*i + 9]  = 1;
-                gridPoints[12*i + 10] = 1;
+                // Top normal
+                gridPoints[12*i + 9]  = 0;
+                gridPoints[12*i + 10] = 0;
                 gridPoints[12*i + 11] = 1;
 	}
 
@@ -355,17 +355,17 @@ void initGrid(matrix_t* t) {
 		gridPoints[132 + 12*i]     = 33.0;
                 gridPoints[132 + 12*i + 1] = 33.0 + (33.0 * i);
                 gridPoints[132 + 12*i + 2] = -16.5;
-                // Left colour
-                gridPoints[132 + 12*i + 3] = 1;
-                gridPoints[132 + 12*i + 4] = 1;
+                // Left normal
+                gridPoints[132 + 12*i + 3] = 0;
+                gridPoints[132 + 12*i + 4] = 0;
                 gridPoints[132 + 12*i + 5] = 1;
                 // Right coord
 		gridPoints[132 + 12*i + 6] = 363.0;
                 gridPoints[132 + 12*i + 7] = 33.0 + (33.0 * i);
                 gridPoints[132 + 12*i + 8] = -16.5;
-                // Right colour
-                gridPoints[132 + 12*i + 9]  = 1;
-                gridPoints[132 + 12*i + 10] = 1;
+                // Right normal
+                gridPoints[132 + 12*i + 9]  = 0;
+                gridPoints[132 + 12*i + 10] = 0;
                 gridPoints[132 + 12*i + 11] = 1;
 	}
 
@@ -375,17 +375,17 @@ void initGrid(matrix_t* t) {
 		gridPoints[384 + 12*i]     = 33.0 + (33.0 * i);
                 gridPoints[384 + 12*i + 1] = 33.0;
                 gridPoints[384 + 12*i + 2] = 16.5;
-                // Bottom colour
-                gridPoints[384 + 12*i + 3] = 1;
-                gridPoints[384 + 12*i + 4] = 1;
+                // Bottom normal
+                gridPoints[384 + 12*i + 3] = 0;
+                gridPoints[384 + 12*i + 4] = 0;
                 gridPoints[384 + 12*i + 5] = 1;
                 // Top coord
 		gridPoints[384 + 12*i + 6] = 33.0 + (33.0 * i);
                 gridPoints[384 + 12*i + 7] = 693.0;
                 gridPoints[384 + 12*i + 8] = 16.5;
-                // Top colour
-                gridPoints[384 + 12*i + 9]  = 1;
-                gridPoints[384 + 12*i + 10] = 1;
+                // Top normal
+                gridPoints[384 + 12*i + 9]  = 0;
+                gridPoints[384 + 12*i + 10] = 0;
                 gridPoints[384 + 12*i + 11] = 1;
 	}
 
@@ -395,17 +395,17 @@ void initGrid(matrix_t* t) {
 		gridPoints[516 + 12*i]     = 33.0;
                 gridPoints[516 + 12*i + 1] = 33.0 + (33.0 * i);
                 gridPoints[516 + 12*i + 2] = 16.5;
-                // Left colour
-                gridPoints[516 + 12*i + 3] = 1;
-                gridPoints[516 + 12*i + 4] = 1;
+                // Left normal
+                gridPoints[516 + 12*i + 3] = 0;
+                gridPoints[516 + 12*i + 4] = 0;
                 gridPoints[516 + 12*i + 5] = 1;
                 // Right coord
 		gridPoints[516 + 12*i + 6] = 363.0;
                 gridPoints[516 + 12*i + 7] = 33.0 + (33.0 * i);
                 gridPoints[516 + 12*i + 8] = 16.5;
-                // Right colour
-                gridPoints[516 + 12*i + 9]  = 1;
-                gridPoints[516 + 12*i + 10] = 1;
+                // Right normal
+                gridPoints[516 + 12*i + 9]  = 0;
+                gridPoints[516 + 12*i + 10] = 0;
                 gridPoints[516 + 12*i + 11] = 1;
 	}
 
@@ -856,6 +856,9 @@ int main(int argc, char** argv) {
         // Depth Testing
         glEnable(GL_DEPTH_TEST);
 
+        // Set initial randomness
+        srand((GLuint)(100000 * glfwGetTime()));
+        
         // Tetris piece Shaders
         debug("Compiling Game shaders.");
         shaders_t* shaders = cogsShaders("vertex.glsl", "fragment.glsl");
@@ -869,8 +872,6 @@ int main(int argc, char** argv) {
         GLuint armShader = cogsProgram(shaders);
         cogsDestroy(shaders);
         check(armShader > 0, "Arm shaders didn't compile.");
-
-        srand((GLuint)(100000 * glfwGetTime()));
 
         // Model Matrix for Game
         matrix_t* tModel = coglMIdentity(4);
@@ -994,6 +995,12 @@ int main(int argc, char** argv) {
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
+                /* Draw Grid */
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
+                glBindVertexArray(gVAO);
+                glDrawArrays(GL_LINES, 0, 128);
+                glBindVertexArray(0);
+                
                 // Set transformation Matrices
                 glUseProgram(tetrisShader);
 
@@ -1004,11 +1011,6 @@ int main(int argc, char** argv) {
                 glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
-
-                /* Draw Grid */
-                glBindVertexArray(gVAO);
-                glDrawArrays(GL_LINES, 0, 128);
-                glBindVertexArray(0);
 
                 /* Draw Board */
                 glBindVertexArray(fVAO);
