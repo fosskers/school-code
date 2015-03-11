@@ -949,10 +949,12 @@ int main(int argc, char** argv) {
         check(armShader > 0, "Arm shaders didn't compile.");
 
         // Lamp Shaders
+        /*
         shaders = cogsShaders("lVertex.glsl", "lFragment.glsl");
         GLuint lShaderP = cogsProgram(shaders);
         cogsDestroy(shaders);
         check(lShaderP > 0, "Lamp shaders didn't compile.");
+        */
         
         // Model Matrix for Game
         matrix_t* tModel = coglMIdentity(4);
@@ -964,7 +966,7 @@ int main(int argc, char** argv) {
         initBoard();
         initGrid(tModel);  // This must come after `tModel` creation.
         initArm();
-        initLamp();
+        //initLamp();
         quiet_check(initBlock());
 
         // Set initial Camera state
@@ -1013,12 +1015,14 @@ int main(int argc, char** argv) {
         glUniform3f(lightL,1.0f,1.0f,1.0f);
 
         // Lamp Model
+        /*
         matrix_t* laModel = coglMIdentity(4);
         laModel = coglMScale(laModel,0.2f);
         laModel = coglM4Translate(laModel,
                                   lightPos->m[0],
                                   lightPos->m[1],
                                   lightPos->m[2]);
+        */
         
         debug("Entering Loop.");
         // Render until you shouldn't.
@@ -1094,7 +1098,7 @@ int main(int argc, char** argv) {
                 // Set transformation Matrices
                 glUseProgram(tetrisShader);
 
-                lightPosLoc = glGetUniformLocation(armShader,"lightPos");
+                lightPosLoc = glGetUniformLocation(tetrisShader,"lightPos");
                 modlLoc     = glGetUniformLocation(tetrisShader,"model");
                 viewLoc     = glGetUniformLocation(tetrisShader,"view");
                 projLoc     = glGetUniformLocation(tetrisShader,"proj");
@@ -1126,6 +1130,7 @@ int main(int argc, char** argv) {
                 glBindVertexArray(0);
 
                 // Draw Lamp
+                /*
                 glUseProgram(lShaderP);
 
                 modlLoc = glGetUniformLocation(lShaderP,"model");
@@ -1139,6 +1144,7 @@ int main(int argc, char** argv) {
                 glBindVertexArray(lVAO);
                 glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
+                */
 
                 // Always comes last.
                 glfwSwapBuffers(w);
