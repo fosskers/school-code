@@ -44,6 +44,8 @@ GLuint fVAO;  // Board's Fruits
 GLuint fVBO;
 GLuint aVAO[3];  // Robot Arm
 GLuint aVBO[3];
+GLuint lVAO;  // Lamp
+GLuint lVBO;
 
 // Transformable Model Matrices
 matrix_t* lModel = NULL;
@@ -209,53 +211,53 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
 
         GLfloat temp[CELL_FLOATS] = {
                 // Back T1
-                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1,
+                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1,
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1,
                 // Back T2
-                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1, 
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1,
+                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 0, -1,
                 // Front T1
-                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
+                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
                 // Front T2
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2], 
-                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
+                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
+                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2], 0, 0, 1,
                 // Left T1
-                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], -1, 0, 0,
+                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], -1, 0, 0,
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  -1, 0, 0,
                 // Left T2
-                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], -1, 0, 0,
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  -1, 0, 0,
+                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],  -1, 0, 0,
                 // Right T1
-                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 1, 0, 0,
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 1, 0, 0,
+                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  1, 0, 0,
                 // Right T2
-                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
+                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  1, 0, 0,
+                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],  1, 0, 0,
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 1, 0, 0,
                 // Top T1
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  0, 1, 0,
+                66 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  0, 1, 0,
+                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 1, 0,
                 // Top T2
-                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],
-                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2],
+                33 + x*33, 66 + y*33, 16.5, c[0], c[1], c[2],  0, 1, 0,
+                33 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 1, 0,
+                66 + x*33, 66 + y*33, -16.5, c[0], c[1], c[2], 0, 1, 0,
                 // Bottom T1
-                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
+                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],  0, -1, 0,
+                66 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],  0, -1, 0,
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, -1, 0,
                 // Bottom T2
-                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],
-                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2],
-                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2]
+                33 + x*33, 33 + y*33, 16.5, c[0], c[1], c[2],  0, -1, 0,
+                33 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, -1, 0,
+                66 + x*33, 33 + y*33, -16.5, c[0], c[1], c[2], 0, -1, 0
         };
 
         check(x > -1 && x < 10 &&
@@ -303,12 +305,16 @@ int initBlock() {
 
         // Tell OpenGL how to process Block Vertices
         glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),(GLvoid*)0);
+                              9 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),
+                              9 * sizeof(GLfloat),
                               (GLvoid*)(3 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
+        glVertexAttribPointer(2,3,GL_FLOAT,GL_FALSE,
+                              9 * sizeof(GLfloat),
+                              (GLvoid*)(6 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(2);
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -459,26 +465,89 @@ void initBoard() {
         glBindVertexArray(fVAO);
         glGenBuffers(1,&fVBO);
         glBindBuffer(GL_ARRAY_BUFFER,fVBO);
-        // 200 cells, each has 36 vertices of 6 data points each.
         glBufferData(GL_ARRAY_BUFFER, 
                      TOTAL_FLOATS * sizeof(GLfloat),
                      temp,
                      GL_DYNAMIC_DRAW);
         
-        // Tell OpenGL how to process Block Vertices
+        // Vertex Location
         glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),(GLvoid*)0);
+                              9 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
+        // Vertex Colour
         glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,
-                              6 * sizeof(GLfloat),
+                              9 * sizeof(GLfloat),
                               (GLvoid*)(3 * sizeof(GLfloat)));
         glEnableVertexAttribArray(1);
+        // Vertex Normal
+        glVertexAttribPointer(2,3,GL_FLOAT,GL_FALSE,
+                              9 * sizeof(GLfloat),
+                              (GLvoid*)(6 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(2);
         glBindVertexArray(0);  // Reset the VAO binding.
-        //        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         clearBoard();
 
         debug("Board initialized.");
+}
+
+/* Set up a debugging lamp to be drawn */
+void initLamp() {
+        GLfloat verts[] = {
+                -0.5f, -0.5f, -0.5f,
+                0.5f, -0.5f, -0.5f,
+                0.5f,  0.5f, -0.5f,
+                0.5f,  0.5f, -0.5f,
+                -0.5f,  0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+
+                -0.5f, -0.5f,  0.5f,
+                0.5f, -0.5f,  0.5f,
+                0.5f,  0.5f,  0.5f,
+                0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f,  0.5f,
+                -0.5f, -0.5f,  0.5f,
+
+                -0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f,  0.5f,
+                -0.5f,  0.5f,  0.5f,
+
+                0.5f,  0.5f,  0.5f,
+                0.5f,  0.5f, -0.5f,
+                0.5f, -0.5f, -0.5f,
+                0.5f, -0.5f, -0.5f,
+                0.5f, -0.5f,  0.5f,
+                0.5f,  0.5f,  0.5f,
+
+                -0.5f, -0.5f, -0.5f,
+                0.5f, -0.5f, -0.5f,
+                0.5f, -0.5f,  0.5f,
+                0.5f, -0.5f,  0.5f,
+                -0.5f, -0.5f,  0.5f,
+                -0.5f, -0.5f, -0.5f,
+
+                -0.5f,  0.5f, -0.5f,
+                0.5f,  0.5f, -0.5f,
+                0.5f,  0.5f,  0.5f,
+                0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f, -0.5f
+        };
+
+        
+        glGenVertexArrays(1,&lVAO);
+        glBindVertexArray(lVAO);
+        glGenBuffers(1,&lVBO);
+        glBindBuffer(GL_ARRAY_BUFFER,lVBO);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(verts),verts,GL_STATIC_DRAW);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,
+                              3 * sizeof(GLfloat),(GLvoid*)0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
 }
 
 /* Move all coloured Cells from the Board */
@@ -530,6 +599,7 @@ void initArm() {
 
         // Location and Normal data
         GLfloat base[216] = {
+                // Back Face
                 -0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
                 0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
                 0.5f,  0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -537,6 +607,7 @@ void initArm() {
                 -0.5f,  0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
                 -0.5f, -0.25f, -0.5f,  0.0f,  0.0f, -1.0f,
 
+                // Front Face
                 -0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
                 0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
                 0.5f,  0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
@@ -544,6 +615,7 @@ void initArm() {
                 -0.5f,  0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
                 -0.5f, -0.25f,  0.5f,  0.0f,  0.0f, 1.0f,
 
+                // Left Face
                 -0.5f,  0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
                 -0.5f,  0.25f, -0.5f, -1.0f,  0.0f,  0.0f,
                 -0.5f, -0.25f, -0.5f, -1.0f,  0.0f,  0.0f,
@@ -551,6 +623,7 @@ void initArm() {
                 -0.5f, -0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
                 -0.5f,  0.25f,  0.5f, -1.0f,  0.0f,  0.0f,
 
+                // Right Face
                 0.5f,  0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
                 0.5f,  0.25f, -0.5f,  1.0f,  0.0f,  0.0f,
                 0.5f, -0.25f, -0.5f,  1.0f,  0.0f,  0.0f,
@@ -558,6 +631,7 @@ void initArm() {
                 0.5f, -0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
                 0.5f,  0.25f,  0.5f,  1.0f,  0.0f,  0.0f,
 
+                // Bottom Face
                 -0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
                 0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
                 0.5f, -0.25f,  0.5f,  0.0f, -1.0f,  0.0f,
@@ -565,6 +639,7 @@ void initArm() {
                 -0.5f, -0.25f,  0.5f,  0.0f, -1.0f,  0.0f,
                 -0.5f, -0.25f, -0.5f,  0.0f, -1.0f,  0.0f,
 
+                // Top Face
                 -0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f,
                 0.5f,  0.25f, -0.5f,  0.0f,  1.0f,  0.0f,
                 0.5f,  0.25f,  0.5f,  0.0f,  1.0f,  0.0f,
@@ -873,6 +948,12 @@ int main(int argc, char** argv) {
         cogsDestroy(shaders);
         check(armShader > 0, "Arm shaders didn't compile.");
 
+        // Lamp Shaders
+        shaders = cogsShaders("lVertex.glsl", "lFragment.glsl");
+        GLuint lShaderP = cogsProgram(shaders);
+        cogsDestroy(shaders);
+        check(lShaderP > 0, "Lamp shaders didn't compile.");
+        
         // Model Matrix for Game
         matrix_t* tModel = coglMIdentity(4);
         tModel = coglM4Translate(tModel,-200,-360,0);
@@ -883,6 +964,7 @@ int main(int argc, char** argv) {
         initBoard();
         initGrid(tModel);  // This must come after `tModel` creation.
         initArm();
+        initLamp();
         quiet_check(initBlock());
 
         // Set initial Camera state
@@ -929,6 +1011,14 @@ int main(int argc, char** argv) {
         //glUniform3f(cubeL,1.0f,0.5f,0.31f);
         glUniform3f(cubeL,0.4,0.78,0.89);
         glUniform3f(lightL,1.0f,1.0f,1.0f);
+
+        // Lamp Model
+        matrix_t* laModel = coglMIdentity(4);
+        laModel = coglMScale(laModel,0.2f);
+        laModel = coglM4Translate(laModel,
+                                  lightPos->m[0],
+                                  lightPos->m[1],
+                                  lightPos->m[2]);
         
         debug("Entering Loop.");
         // Render until you shouldn't.
@@ -1004,10 +1094,13 @@ int main(int argc, char** argv) {
                 // Set transformation Matrices
                 glUseProgram(tetrisShader);
 
-                modlLoc = glGetUniformLocation(tetrisShader,"model");
-                viewLoc = glGetUniformLocation(tetrisShader,"view");
-                projLoc = glGetUniformLocation(tetrisShader,"proj");
+                lightPosLoc = glGetUniformLocation(armShader,"lightPos");
+                modlLoc     = glGetUniformLocation(tetrisShader,"model");
+                viewLoc     = glGetUniformLocation(tetrisShader,"view");
+                projLoc     = glGetUniformLocation(tetrisShader,"proj");
 
+                glUniform3f(lightPosLoc,lightPos->m[0],
+                            lightPos->m[1],lightPos->m[2]);
                 glUniformMatrix4fv(modlLoc,1,GL_FALSE,tModel->m);
                 glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
@@ -1030,6 +1123,21 @@ int main(int argc, char** argv) {
 
                 glBindVertexArray(bVAO);
                 glDrawArrays(GL_TRIANGLES,0,36 * 4);
+                glBindVertexArray(0);
+
+                // Draw Lamp
+                glUseProgram(lShaderP);
+
+                modlLoc = glGetUniformLocation(lShaderP,"model");
+                viewLoc = glGetUniformLocation(lShaderP,"view");
+                projLoc = glGetUniformLocation(lShaderP,"proj");
+
+                glUniformMatrix4fv(modlLoc,1,GL_FALSE,laModel->m);
+                glUniformMatrix4fv(viewLoc,1,GL_FALSE,view->m);
+                glUniformMatrix4fv(projLoc,1,GL_FALSE,proj->m);
+
+                glBindVertexArray(lVAO);
+                glDrawArrays(GL_TRIANGLES,0,36);
                 glBindVertexArray(0);
 
                 // Always comes last.
