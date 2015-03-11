@@ -7,9 +7,9 @@
 // --- //
 
 /* Would dropping the Block result in a collision? */
-bool isColliding(block_t* b, Fruit* board);
+bool isColliding(block_t* b, Fruit* board, matrix_t* nearest);
 
 /* Are all the Block's Cells within the Board? */
-bool isInBoard(block_t* b, matrix_t** centers);
+bool isInBoard(block_t* b, matrix_t* nearest);
 
 #endif

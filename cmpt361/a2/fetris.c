@@ -94,7 +94,8 @@ void newBlock() {
 }
 
 void refreshBlock() {
-        block->colliding = !isInBoard(block,cellCenters);
+        matrix_t* nearest = nearestCell(block,cellCenters);
+        block->colliding = isColliding(block,board,nearest);
 
         GLfloat* coords = blockCoords(block);
 
@@ -114,15 +115,22 @@ void placeBlock() {
         matrix_t* cell = nearestCell(block, cellCenters);
         check(cell, "Could't find a nearest Cell!");
 
-        cells = blockCells(block, (GLuint)(cell->m[0]), (GLuint)(cell->m[1]));
+        block->colliding = isColliding(block,board,cell);
 
-        // Add the Block's cells to the master Board
-        for(i = 0,j=0; i < 8; i+=2,j++) {
-                board[cells[i] + 10*cells[i+1]] = block->fs[j];
+        if(!(block->colliding)) {
+                cells = blockCells(block,
+                                   (GLuint)(cell->m[0]),
+                                   (GLuint)(cell->m[1]));
+
+                // Add the Block's cells to the master Board
+                for(i = 0,j=0; i < 8; i+=2,j++) {
+                        board[cells[i] + 10*cells[i+1]] = block->fs[j];
+                }
+
+                refreshBoard();
+                newBlock();
         }
 
-        refreshBoard();
-        newBlock();
  error:
         return;
 }

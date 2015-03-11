@@ -333,9 +333,6 @@ matrix_t* nearestCell(block_t* b, matrix_t** centers) {
         check(b, "Null Block given.");
         check(centers, "Null list of Grid Cell centers given.");
 
-        debug("Finding nearest Cell.");
-        debug("Block at (%f,%f)",b->x,b->y);
-
         // Assumption: `centers` has 200 elements.
         for(i = 0; i < 200; i++) {
                 xdiff = b->x - centers[i]->m[0];
