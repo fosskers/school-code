@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 
 #include "block.h"
 #include "cog/dbg.h"
@@ -309,6 +310,39 @@ GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f) {
         return NULL;
 }
 
+/* Finds the nearest Grid Cell (x,y) location to the given Block */
+matrix_t* nearestCell(block_t* b, matrix_t** centers) {
+        GLuint i;
+        GLfloat curr;
+        GLfloat currMin = 1000000;  // Arbitrarily large.
+        GLuint minLoc = 0;
+        GLfloat xdiff;
+        GLfloat ydiff;
+
+        check(b, "Null Block given.");
+        check(centers, "Null list of Grid Cell centers given.");
+
+        debug("Finding nearest Cell.");
+        debug("Block at (%f,%f)",b->x,b->y);
+
+        // Assumption: `centers` has 200 elements.
+        for(i = 0; i < 200; i++) {
+                xdiff = b->x - centers[i]->m[0];
+                ydiff = b->y - centers[i]->m[1];
+
+                curr = sqrt(xdiff*xdiff + ydiff*ydiff);
+
+                if(curr < currMin) {
+                        currMin = curr;
+                        minLoc = i;
+                }
+        }
+
+        return coglV2(centers[minLoc]->m[2],centers[minLoc]->m[3]);
+ error:
+        return NULL;
+}
+
 /* Generate a random Block */
 block_t* randBlock() {
         block_t* b = NULL;
@@ -366,19 +400,20 @@ block_t* rotateBlock(block_t* b) {
         return NULL;
 }
 
-/* Yield a list of grid-space coordinates occupied by the Block */
-int* blockCells(block_t* b) {
-        int* cells = NULL;
+/* Yield a list of grid-space coordinates relative to (x,y) and the current
+ * Block's shape */
+GLint* blockCells(block_t* b, GLuint x, GLuint y) {
+        GLint* cells = NULL;
 
         check(b, "Null Block given.");
 
-        cells = malloc(sizeof(int) * 8);
+        cells = malloc(sizeof(GLint) * 8);
         check_mem(cells);
         
-        cells[0] = b->x + b->coords[0]; cells[1] = b->y + b->coords[1];
-        cells[2] = b->x + b->coords[2]; cells[3] = b->y + b->coords[3];
-        cells[4] = b->x;                cells[5] = b->y;
-        cells[6] = b->x + b->coords[4]; cells[7] = b->y + b->coords[5];
+        cells[0] = x + b->coords[0]; cells[1] = y + b->coords[1];
+        cells[2] = x + b->coords[2]; cells[3] = y + b->coords[3];
+        cells[4] = x;                cells[5] = y;
+        cells[6] = x + b->coords[4]; cells[7] = y + b->coords[5];
         
         return cells;
  error:

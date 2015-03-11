@@ -16,11 +16,11 @@
 
 // --- //
 
-GLfloat* blockToCoords();
 void initBoard();
 void clearBoard();
 void newBlock();
 void refreshBlock();
+void placeBlock();
 int refreshBoard();
 matrix_t* rotateLShaft(int);
 matrix_t* rotateUShaft(int);
@@ -54,6 +54,11 @@ GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 GLfloat keyDelta  = 0.0f;
 GLfloat lastKey   = 0.0f;
+
+/* Needed to calculate to distance between the Block's current position
+ * in World Space and the center of the nearest Grid Cell.
+ */
+matrix_t* cellCenters[BOARD_CELLS];
 
 camera_t* camera;
 matrix_t* view;
@@ -98,6 +103,26 @@ void refreshBlock() {
         glBindVertexArray(0);
 
         free(coords);  // Necessary?
+}
+
+/* Place the Block into the Board in the nearest Cell */
+void placeBlock() {
+        GLuint i,j;
+        GLint* cells;
+        matrix_t* cell = nearestCell(block, cellCenters);
+        check(cell, "Could't find a nearest Cell!");
+
+        cells = blockCells(block, (GLuint)(cell->m[0]), (GLuint)(cell->m[1]));
+
+        // Add the Block's cells to the master Board
+        for(i = 0,j=0; i < 8; i+=2,j++) {
+                board[cells[i] + 10*cells[i+1]] = block->fs[j];
+        }
+
+        refreshBoard();
+        newBlock();
+ error:
+        return;
 }
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
@@ -147,6 +172,8 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
                         uModel = rotateUShaft(1);
                 } else if(keys[GLFW_KEY_S]) {
                         uModel = rotateUShaft(-1);
+                } else if(keys[GLFW_KEY_SPACE]) {
+                        placeBlock();
                 }
         } else if(action == GLFW_RELEASE) {
                 keys[key] = false;
@@ -237,47 +264,6 @@ GLfloat* gridLocToCoords(int x, int y, Fruit f) {
         return NULL;
 }
 
-/* Produce locations and colours based on the current global Block */
-GLfloat* blockToCoords() {
-        GLfloat* temp1;
-        GLfloat* temp2;
-        GLfloat* cs = NULL;
-
-        // 4 cells, each has 36 vertices of 6 data points each.
-        //GLfloat* cs = malloc(sizeof(GLfloat) * 4 * 36 * 6);
-        //check_mem(cs);
-
-        // Coords and colours for each cell.
-        GLfloat* a = gridLocToCoords(block->x+block->coords[0],
-                                     block->y+block->coords[1],
-                                     block->fs[0]);
-        GLfloat* b = gridLocToCoords(block->x+block->coords[2],
-                                     block->y+block->coords[3],
-                                     block->fs[1]);
-        GLfloat* c = gridLocToCoords(block->x,
-                                     block->y,
-                                     block->fs[2]);
-        GLfloat* d = gridLocToCoords(block->x+block->coords[4],
-                                     block->y+block->coords[5],
-                                     block->fs[3]);
-
-        check(a && b && c && d, "Couldn't get Cell coordinates.");
-
-         // Construct return value
-        temp1 = append(a, CELL_FLOATS, b, CELL_FLOATS);
-        temp2 = append(c, CELL_FLOATS, d, CELL_FLOATS);
-        cs    = append(temp1, CELL_FLOATS * 2, temp2, CELL_FLOATS * 2);
-        check(cs, "Couldn't construct final list of coords/colours.");
-
-        free(temp1); free(temp2);
-        free(a); free(b); free(c); free(d);
-        
-        return cs;
- error:
-        if(cs) { free(cs); }
-        return NULL;
-}
-
 /* Initialize the Block */
 int initBlock() {
         block = randBlock();
@@ -317,9 +303,11 @@ int initBlock() {
 
 /* Initialize the Grid */
 // Insert TRON pun here.
-void initGrid() {
+void initGrid(matrix_t* t) {
         GLfloat gridPoints[768];  // Contains colour info as well.
-        int i;
+        matrix_t* temp1 = NULL;
+        matrix_t* temp2 = NULL;
+        GLuint i,j;
 
         debug("Initializing Grid.");
 
@@ -402,6 +390,23 @@ void initGrid() {
                 gridPoints[516 + 12*i + 10] = 1;
                 gridPoints[516 + 12*i + 11] = 1;
 	}
+
+        // Set up list of Board Cell Centers
+        for(j = 0; j < 20; j++) {
+                for(i = 0; i < 10; i++) {
+                        temp1 = coglV4(49.5+33*i,49.6+33*j,0,1);
+                        // Scale and translate the vertex to World Space.
+                        temp2 = coglMMultiplyP(t,temp1);
+
+                        cellCenters[j*10 + i] = coglV4(temp2->m[0],
+                                                       temp2->m[1],
+                                                       i,
+                                                       j);
+
+                        coglMDestroy(temp1);
+                        coglMDestroy(temp2);
+                }
+        }
 
         // Set up VAO/VBO
         glGenVertexArrays(1,&gVAO);
@@ -864,20 +869,20 @@ int main(int argc, char** argv) {
 
         srand((GLuint)(100000 * glfwGetTime()));
 
-        // Initialize Board, Grid, Arm, and first Block
-        initBoard();
-        initGrid();
-        initArm();
-        quiet_check(initBlock());
-
-        // Set initial Camera state
-        resetCamera();
-
         // Model Matrix for Game
         matrix_t* tModel = coglMIdentity(4);
         tModel = coglM4Translate(tModel,-200,-360,0);
         tModel = coglMScale(tModel,2.0/450);
         check(tModel, "tModel creation failed.");
+
+        // Initialize Board, Grid, Arm, and first Block
+        initBoard();
+        initGrid(tModel);  // This must come after `tModel` creation.
+        initArm();
+        quiet_check(initBlock());
+
+        // Set initial Camera state
+        resetCamera();
 
         // Model Matrix for Block
         matrix_t* bModel = coglMIdentity(4);
@@ -1013,6 +1018,10 @@ int main(int argc, char** argv) {
                 shift->m[13] += opp;
                 bModelFinal = coglMMultiplyP(shift,bModel);
                 glUniformMatrix4fv(modlLoc,1,GL_FALSE,bModelFinal->m);
+
+                // Tell the Block where its sitting in World Space.
+                block->x = bModelFinal->m[12];
+                block->y = bModelFinal->m[13];
 
                 glBindVertexArray(bVAO);
                 glDrawArrays(GL_TRIANGLES,0,36 * 4);

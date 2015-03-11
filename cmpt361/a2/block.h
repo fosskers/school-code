@@ -2,6 +2,9 @@
 #define __block_h__
 
 #include <GL/glew.h>
+#include "cog/linalg/linalg.h"
+
+// --- //
 
 typedef enum { None, Grape, Apple, Banana, Pear, Orange } Fruit;
 
@@ -53,14 +56,18 @@ GLfloat* blockCoords(block_t* b);
  */
 GLfloat* cellCoords(GLfloat x, GLfloat y, GLint xoff, GLint yoff, Fruit f);
 
+/* Finds the nearest Grid Cell (x,y) location to the given Block */
+matrix_t* nearestCell(block_t* b, matrix_t** centers);
+
 /* Generate a random Block */
 block_t* randBlock();
 
 /* Rotate a Block to its next configuration */
 block_t* rotateBlock(block_t* b);
 
-/* Yield a list of grid-space coordinates occupied by the Block */
-int* blockCells(block_t* b);
+/* Yield a list of grid-space coordinates relative to (x,y) and the current
+ * Block's shape */
+GLint* blockCells(block_t* b, GLuint x, GLuint y);
 
 /* Shuffle the order of the fruits */
 block_t* shuffleFruit(block_t* b);
