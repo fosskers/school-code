@@ -5,11 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "block.h"
 #include "cog/camera/camera.h"
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
+#include "cog/freetype/freetype.h"
 #include "collision.h"
 #include "defines.h"
 #include "util.h"
@@ -46,6 +49,8 @@ GLuint aVAO[3];  // Robot Arm
 GLuint aVBO[3];
 GLuint lVAO;  // Lamp
 GLuint lVBO;
+GLuint cVAO;  // Text
+GLuint cVBO;
 
 // Transformable Model Matrices
 matrix_t* lModel = NULL;
@@ -318,8 +323,6 @@ int initBlock() {
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        debug("Block initialized.");
-
         return 1;
  error:
         return 0;
@@ -450,8 +453,6 @@ void initGrid(matrix_t* t) {
         glEnableVertexAttribArray(1);
         glBindVertexArray(0);  // Reset the VAO binding.
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        debug("Grid initialized.");
 }
 
 /* Initialize the game board */
@@ -488,8 +489,6 @@ void initBoard() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         clearBoard();
-
-        debug("Board initialized.");
 }
 
 /* Set up a debugging lamp to be drawn */
@@ -548,6 +547,81 @@ void initLamp() {
                               3 * sizeof(GLfloat),(GLvoid*)0);
         glEnableVertexAttribArray(0);
         glBindVertexArray(0);
+}
+
+/* Set up the text VAO/VBO */
+void initText() {
+        glGenVertexArrays(1, &cVAO);
+        glGenBuffers(1, &cVBO);
+        glBindVertexArray(cVAO);
+        glBindBuffer(GL_ARRAY_BUFFER,cVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+                     sizeof(GLfloat) * 6 * 4,
+                     NULL, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE,
+                              4 * sizeof(GLfloat), 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);    
+}
+
+void renderText(ftchar_t** all, GLuint p, const char* s, GLuint len,
+                GLfloat x, GLfloat y, GLfloat scale) {
+        GLuint i,j;
+        ftchar_t* ch;
+
+        glUseProgram(p);
+        glUniform3f(glGetUniformLocation(p,"textColour"),0.5,0.8,0.2);
+        glActiveTexture(GL_TEXTURE0);
+        glBindVertexArray(cVAO);
+
+        for(i = 0; i < len; i++) {
+                // Find the Glyph data
+                for(j = 0; j < 128; j++) {
+                        ch = NULL;
+
+                        if(s[i] == all[j]->c) {
+                                ch = all[j];
+                                break;
+                        }
+                }
+
+                check(ch, "Couldn't find character glyph data.");
+
+                GLfloat xpos = x + ch->bearingX * scale;
+                GLfloat ypos = y - (ch->sizeY - ch->bearingY) * scale;
+                GLfloat w = ch->sizeX * scale;
+                GLfloat h = ch->sizeY * scale;
+
+                // Update VBO for each character
+                GLfloat vertices[24] = {
+                        xpos, ypos + h, 0.0, 0.0,
+                        xpos, ypos, 0.0, 1.0,
+                        xpos + w, ypos, 1.0, 1.0,
+
+                        xpos,     ypos + h,   0.0, 0.0,
+                        xpos + w, ypos,       1.0, 1.0,
+                        xpos + w, ypos + h,   1.0, 0.0
+                };
+
+                // Render glyph texture over quad
+                glBindTexture(GL_TEXTURE_2D, ch->textureID);
+                // Update content of VBO memory
+                glBindBuffer(GL_ARRAY_BUFFER, cVBO);
+                glBufferSubData(GL_ARRAY_BUFFER, 0,
+                                sizeof(vertices), vertices);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+                // Render quad
+                glDrawArrays(GL_TRIANGLES,0,6);
+                x += ((ch->advance) >> 6) * scale;
+        }
+        
+        glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D,0);
+
+ error:
+        return;
 }
 
 /* Move all coloured Cells from the Board */
@@ -905,48 +979,72 @@ void fruitCheck() {
 }
 
 int main(int argc, char** argv) {
-        // Initial settings.
+        /* Initial settings */
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         
-        // Make a window.
+        /* Window creation */
         GLFWwindow* w = glfwCreateWindow(wWidth,wHeight,"Fetris",NULL,NULL);
         glfwMakeContextCurrent(w);
 
-        // Fire up GLEW.
+        /* GLEW settings */
         glewExperimental = GL_TRUE;  // For better compatibility.
         glewInit();
 
-        // For the rendering window.
         glViewport(0,0,wWidth,wHeight);
 
-        // Register callbacks.
+        /* Register callbacks */
         glfwSetKeyCallback(w, key_callback);
         glfwSetInputMode(w,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
         glfwSetCursorPosCallback(w,mouse_callback);
         
-        // Depth Testing
+        /* Depth Testing */
         glEnable(GL_DEPTH_TEST);
 
-        // Set initial randomness
-        srand((GLuint)(100000 * glfwGetTime()));
+        /* Blending */
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         
-        // Tetris piece Shaders
+        /* Set initial randomness */
+        srand((GLuint)(100000 * glfwGetTime()));
+
+        /* Font settings */
+        debug("Initializing font.");
+        FT_Library ft;
+        check(!FT_Init_FreeType(&ft), "Failed loading FreeType lib.");
+
+        FT_Face face;
+        check(!FT_New_Face(ft,"arial.ttf",0,&face), "Failed to load font.");
+        // Width calculated dynamically based on height.
+        FT_Set_Pixel_Sizes(face,0,48);
+        ftchar_t** chars = cogfAllAscii(face);
+        check(chars, "Failed to generate all ASCII data.");
+        FT_Done_Face(face);
+        FT_Done_FreeType(ft);
+        
+        /* Tetris piece Shaders */
         debug("Compiling Game shaders.");
         shaders_t* shaders = cogsShaders("vertex.glsl", "fragment.glsl");
         GLuint tetrisShader = cogsProgram(shaders);
         cogsDestroy(shaders);
         check(tetrisShader > 0, "Game shaders didn't compile.");
 
-        // Arm Shaders
+        /* Arm Shaders */
         debug("Compiling Arm shaders.");
         shaders = cogsShaders("aVertex.glsl","aFragment.glsl");
         GLuint armShader = cogsProgram(shaders);
         cogsDestroy(shaders);
         check(armShader > 0, "Arm shaders didn't compile.");
+
+        /* Text Shaders */
+        debug("Compiling Text shaders.");
+        shaders = cogsShaders("cVertex.glsl","cFragment.glsl");
+        GLuint textShader = cogsProgram(shaders);
+        cogsDestroy(shaders);
+        check(textShader > 0, "Text shaders didn't compile.");
 
         // Lamp Shaders
         /*
@@ -956,36 +1054,37 @@ int main(int argc, char** argv) {
         check(lShaderP > 0, "Lamp shaders didn't compile.");
         */
         
-        // Model Matrix for Game
+        /* Model Matrix for Game */
         matrix_t* tModel = coglMIdentity(4);
         tModel = coglM4Translate(tModel,-200,-360,0);
         tModel = coglMScale(tModel,2.0/450);
         check(tModel, "tModel creation failed.");
 
-        // Initialize Board, Grid, Arm, and first Block
+        /* Initialize Board, Grid, Arm, and first Block */
         initBoard();
         initGrid(tModel);  // This must come after `tModel` creation.
         initArm();
+        initText();
         //initLamp();
         quiet_check(initBlock());
 
-        // Set initial Camera state
+        /* Set initial Camera state */
         resetCamera();
 
-        // Model Matrix for Block
+        /* Model Matrix for Block */
         matrix_t* bModel = coglMIdentity(4);
         bModel = coglMScale(bModel,2.0/450);
         bModel = coglM4Translate(bModel,-1.1,-1.25,0);
         matrix_t* bModelFinal = NULL;
         check(bModel, "bModel creation failed.");
 
-        // Model Matrix for Robot Arm Base
+        /* Model Matrix for Robot Arm Base */
         matrix_t* aModel = coglMIdentity(4);
         aModel = coglMScale(aModel,0.5);
         aModel = coglM4Translate(aModel,-1.1,-1.25,0);
         check(aModel, "aModel creation failed.");
 
-        // Model Matrix for Robot Arm Shaft
+        /* Model Matrix for Robot Arm Shaft */
         // `lModel` is also rotated by other code.
         lModel = coglMIdentity(4);
         lModel = coglM4Translate(lModel,-1.1,-1.25,0);
@@ -995,14 +1094,19 @@ int main(int argc, char** argv) {
         matrix_t* uModelFinal = NULL;
         check(uModel, "uModel creation failed.");
 
-        // Projection Matrix
+        /* Projection Matrix */
         matrix_t* proj = coglMPerspectiveP(tau/8, 
-                                           (float)wWidth/(float)wHeight,
+                                           (GLfloat)wWidth/(GLfloat)wHeight,
                                            0.1f,1000.0f);
+
+        /* Ortho Matrix */
+        matrix_t* ortho = coglMOrthoP(0.0f,(GLfloat)wWidth,
+                                      0.0f,(GLfloat)wHeight,
+                                      0.1f,1000.0f);
 
         GLfloat currentFrame;
 
-        // Set Lighting
+        /* Lighting settings */
         glUseProgram(armShader);
         matrix_t* lightPos = coglV3(1.2f,1.0f,2.0f);
         GLuint lightPosLoc = glGetUniformLocation(armShader,"lightPos");
@@ -1040,7 +1144,7 @@ int main(int argc, char** argv) {
 
                 glClearColor(0.1f,0.1f,0.1f,1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                
+                              
                 // Update View Matrix
                 coglMDestroy(view);
                 view = coglM4LookAtP(camera->pos,camera->tar,camera->up);
@@ -1146,6 +1250,14 @@ int main(int argc, char** argv) {
                 glBindVertexArray(0);
                 */
 
+                /* Draw Text */
+                glUseProgram(textShader);
+                projLoc = glGetUniformLocation(textShader,"proj");
+                glUniformMatrix4fv(projLoc,1,GL_FALSE,ortho->m);
+                renderText(chars,textShader,"Hello!",6,25.0f,25.0f,1.0f);
+                renderText(chars,textShader,"This is great!",
+                           14,540.0f,570.0f,0.5f);
+                        
                 // Always comes last.
                 glfwSwapBuffers(w);
         }
