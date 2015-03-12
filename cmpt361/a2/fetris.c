@@ -5,14 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
+//#include <ft2build.h>
+//#include FT_FREETYPE_H
 
 #include "block.h"
 #include "cog/camera/camera.h"
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
-#include "cog/freetype/freetype.h"
 #include "collision.h"
 #include "defines.h"
 #include "util.h"
@@ -565,6 +564,7 @@ void initText() {
         glBindVertexArray(0);    
 }
 
+/*
 void renderText(ftchar_t** all, GLuint p, const char* s, GLuint len,
                 GLfloat x, GLfloat y, GLfloat scale) {
         GLuint i,j;
@@ -623,6 +623,7 @@ void renderText(ftchar_t** all, GLuint p, const char* s, GLuint len,
  error:
         return;
 }
+*/
 
 /* Move all coloured Cells from the Board */
 void clearBoard() {
@@ -1012,6 +1013,7 @@ int main(int argc, char** argv) {
         srand((GLuint)(100000 * glfwGetTime()));
 
         /* Font settings */
+        /*
         debug("Initializing font.");
         FT_Library ft;
         check(!FT_Init_FreeType(&ft), "Failed loading FreeType lib.");
@@ -1024,6 +1026,7 @@ int main(int argc, char** argv) {
         check(chars, "Failed to generate all ASCII data.");
         FT_Done_Face(face);
         FT_Done_FreeType(ft);
+        */
         
         /* Tetris piece Shaders */
         debug("Compiling Game shaders.");
@@ -1251,12 +1254,14 @@ int main(int argc, char** argv) {
                 */
 
                 /* Draw Text */
+                /*
                 glUseProgram(textShader);
                 projLoc = glGetUniformLocation(textShader,"proj");
                 glUniformMatrix4fv(projLoc,1,GL_FALSE,ortho->m);
                 renderText(chars,textShader,"Hello!",6,25.0f,25.0f,1.0f);
                 renderText(chars,textShader,"This is great!",
                            14,540.0f,570.0f,0.5f);
+                */
                         
                 // Always comes last.
                 glfwSwapBuffers(w);
