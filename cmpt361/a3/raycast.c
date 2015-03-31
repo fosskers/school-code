@@ -7,18 +7,18 @@
 #include <unistd.h>
 
 #include "cog/dbg.h"
-#include "sphere.h"
 #include "cog/shaders/shaders.h"
+#include "sphere.h"
 
 // --- //
 
-#define wWidth 800
-#define wHeight 600
-#define PIXEL_DATA wWidth * wHeight * 3
+#define W_WIDTH 600
+#define W_HEIGHT 600
+#define PIXEL_DATA W_WIDTH * W_HEIGHT * 3
 
 GLuint VAO;
 GLuint VBO;
-GLfloat buffer[wHeight][wWidth][3];
+GLfloat buffer[W_HEIGHT][W_WIDTH][3];
 
 // --- //
 
@@ -26,6 +26,120 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         if(action == GLFW_PRESS || key == GLFW_KEY_Q) {
                 glfwSetWindowShouldClose(w, GL_TRUE);
         }
+}
+
+/* Fills pixel buffer with random colours */
+void fill_buffer_randomly() {
+        GLuint i,j;
+
+        for(i = 0; i < W_WIDTH; i++) {
+                for (j = 0; j < W_HEIGHT; j++) {
+                        buffer[j][i][0] = rand() / (GLfloat)RAND_MAX;
+                        buffer[j][i][1] = rand() / (GLfloat)RAND_MAX;
+                        buffer[j][i][2] = rand() / (GLfloat)RAND_MAX;
+                }
+        }
+
+        // For testing how array dims affect pixels displayed
+        for(i = 0; i < 10; i++) {
+                buffer[i][0][0] = 0.0;
+                buffer[i][0][1] = 0.0;
+                buffer[i][0][2] = 0.0;
+        }
+}
+
+/* Returns the scaling factor `d`, if there is one.
+ * Arguments aren't checked for NULL, so don't fuck it up.
+ *
+ * s   := The sphere the Ray might be hitting.
+ * eye := Our eye position
+ * ray := Normalized direction vector from eye.
+ */
+GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
+        matrix_t* ray_to_center = coglMSubP(eye, s->center);
+        GLfloat dotProd = coglVDotProduct(ray, ray_to_center);
+        GLfloat len = coglVLength(ray_to_center);
+        GLfloat inner = dotProd * dotProd - len * len + s->radius * s->radius;
+
+        GLfloat d1 = -dotProd + sqrt(inner);
+        GLfloat d2 = -dotProd - sqrt(inner);
+
+        coglMDestroy(ray_to_center);
+
+        // If one is NaN, they both are.
+        if(isnan(d1)) {
+                return d1;
+        } else if (d1 < d2) {
+                return d1;
+        } else {
+                return d2;
+        }
+}
+
+/* Ray Trace a few Spheres. Modifies given buffer */
+void default_scene(matrix_t* eye) {
+        GLuint i,j,k;
+        GLuint total_hits = 0;
+        GLfloat min_d, curr_d;
+        matrix_t* ray = NULL;  // Normalized ray from eye.
+        Sphere* curr_s = NULL;
+
+        check(eye, "Bad eye position given.");
+
+        debug("Ray Tracing default scene...");
+        
+        /* These could be ordered by distance by calculating their
+         * eye_to_center lengths. You could stop ray tracing on the first
+         * sphere you hit, as you know it's the closest one.
+         */ 
+        Sphere* spheres[3] = {
+                newSphere(1.5, -0.2, -3.2, 1.23, 0.7, 0.7, 0.7),
+                newSphere(-1.5, 0.0, -3.5, 1.5,  0.6, 0.6, 0.6),
+                newSphere(-0.35, 1.75, -2.25, 0.5, 0.2, 0.2, 0.2)
+        };
+
+        // n^2. Love it.
+        for(i = 0; i < W_WIDTH; i++) {
+                for (j = 0; j < W_HEIGHT; j++) {
+                        min_d = INFINITY;
+
+                        ray = coglVNormalize(coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
+                                                    -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
+                                                    -eye->m[2]));
+
+                        curr_s = NULL;
+
+                        for(k = 0; k < 3; k++) {
+                                curr_d = scaling_factor(spheres[k], eye, ray);
+
+                                if(curr_d < min_d) {
+                                        min_d = curr_d;
+                                        curr_s = spheres[k];
+                                }
+                        }
+
+                        if(curr_s) {
+                                total_hits++;
+
+                                // Sphere's colour.
+                                buffer[j][i][0] = curr_s->colour->m[0];
+                                buffer[j][i][1] = curr_s->colour->m[1];
+                                buffer[j][i][2] = curr_s->colour->m[2];
+                        } else {
+                                // Background colour.
+                                buffer[j][i][0] = 0.5;
+                                buffer[j][i][1] = 0.5;
+                                buffer[j][i][2] = 0.8;
+                        }
+
+                        coglMDestroy(ray);
+                }
+        }
+
+        debug("Total Ray hits: %d", total_hits);
+
+ error:
+        return;
 }
 
 /* Initial VAO/VBO */
@@ -50,7 +164,7 @@ GLuint init_buffers() {
         GLuint tex;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, wWidth, wHeight, 0,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, W_WIDTH, W_HEIGHT, 0,
                      GL_RGB, GL_FLOAT, buffer);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -89,14 +203,14 @@ int main(int argc, char** argv) {
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         
         /* Window creation */
-        GLFWwindow* w = glfwCreateWindow(wWidth,wHeight,"Raycast",NULL,NULL);
+        GLFWwindow* w = glfwCreateWindow(W_WIDTH,W_HEIGHT,"Raycast",NULL,NULL);
         glfwMakeContextCurrent(w);
 
         /* GLEW settings */
         glewExperimental = GL_TRUE;  // For better compatibility.
         glewInit();
 
-        glViewport(0,0,wWidth,wHeight);
+        glViewport(0,0,W_WIDTH,W_HEIGHT);
 
         /* Register callbacks */
         glfwSetKeyCallback(w, key_callback);
@@ -109,15 +223,15 @@ int main(int argc, char** argv) {
         //glEnable(GL_BLEND);
         //glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
+        /* Set initial randomness */
+        srand((GLuint)(100000 * glfwGetTime()));
+
+        /* Set default scene */
+        matrix_t* eye = coglV3(0,0,2);
+        default_scene(eye);
+        
         /* Fill `buffer` */
-        GLuint i,j;
-        for (i = 0; i < wHeight; i++) {
-                for (j = 0; j < wWidth; j++) {
-                        buffer[i][j][0] = rand() / (GLfloat)RAND_MAX;
-                        buffer[i][j][1] = rand() / (GLfloat)RAND_MAX;
-                        buffer[i][j][2] = rand() / (GLfloat)RAND_MAX;
-                }
-        }
+        //fill_buffer_randomly();
 
         /* Initialize VAO/VBO/Texture */
         GLuint tex = init_buffers();
@@ -134,17 +248,10 @@ int main(int argc, char** argv) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
         glUniform1i(glGetUniformLocation(shaderP,"tex"),0);
-        
-        /* Default Scene - Three Spheres */
-        Sphere* spheres[3] = {
-                newSphere(1.5, -0.2, -3.2, 1.23),
-                newSphere(-1.5, 0.0, -3.5, 1.5),
-                newSphere(-0.35, 1.75, -2.25, 0.5)
-        };
 
         // Might be important
         glClearColor(0.5f,0.05f,0.8f,1.0f);
-
+        
         debug("Entering Loop.");
         // Render until you shouldn't.
         while(!glfwWindowShouldClose(w)) {
