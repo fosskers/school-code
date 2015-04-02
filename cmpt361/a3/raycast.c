@@ -28,6 +28,14 @@ void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
         }
 }
 
+GLfloat max_of(GLfloat f1, GLfloat f2) {
+        if(f1 > f2) {
+                return f1;
+        } else {
+                return f2;
+        }
+}
+
 /* Fills pixel buffer with random colours */
 void fill_buffer_randomly() {
         GLuint i,j;
@@ -46,6 +54,50 @@ void fill_buffer_randomly() {
                 buffer[i][0][1] = 0.0;
                 buffer[i][0][2] = 0.0;
         }
+}
+
+// I think we can make this more general, to light any scene.
+matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
+        // Constants for the scene
+        GLfloat scene_ambient  = 0.1;
+        GLfloat scene_diffuse  = 1.0;
+        GLfloat scene_specular = 1.0;
+
+        check(s, "Null Sphere given.");
+        check(x, "Null Point given.");
+        check(eye, "Null eye given.");
+        check(lPos, "Null light position given.");
+        
+        matrix_t* n = coglVNormalize(coglMSubP(x, s->center));
+        matrix_t* l = coglVNormalize(coglMSubP(lPos, x));
+        matrix_t* v = coglVNormalize(coglMSubP(eye, x));
+        matrix_t* r = coglVNormalize(coglMSubP(coglMScale(
+                              n, 2 * coglVDotProduct(l,n)), l));
+
+        //coglMPrint(s->diffuse);
+
+        // `i` is global, `k` is constant for material
+        // use `powf`
+        // Terms in solution
+        matrix_t* t1 = coglMScale(coglMCopy(s->ambient), scene_ambient);
+        matrix_t* t2 = coglMScale(coglMCopy(s->diffuse),
+                                  scene_diffuse * max_of(0.0,
+                                                         coglVDotProduct(l,n)));
+        matrix_t* t3 = coglMScale(coglMCopy(s->specular),
+                                  scene_specular * powf(max_of(0.0,
+                                                               coglVDotProduct(r,v)),
+                                                        s->shininess));
+        
+        matrix_t* terms[3] = { t1, t2, t3 };
+
+        matrix_t* sum = coglMSumsP(terms, 3);
+
+        //coglMPrint(t2);
+
+        return sum;
+
+ error:
+        return NULL;
 }
 
 /* Returns the scaling factor `d`, if there is one.
@@ -77,13 +129,15 @@ GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
 }
 
 /* Ray Trace a few Spheres. Modifies given buffer */
-void default_scene(matrix_t* eye) {
+void default_scene(matrix_t* eye, matrix_t* lPos) {
+        GLfloat min_d, curr_d;
         GLuint i,j,k;
         GLuint total_hits = 0;
-        GLfloat min_d, curr_d;
-        matrix_t* ray = NULL;  // Normalized ray from eye.
         Sphere* curr_s = NULL;
-
+        matrix_t* colour = NULL;  // Final pixel colour.
+        matrix_t* ray = NULL;     // Normalized ray from eye.
+        matrix_t* x = NULL;       // The Ray/Sphere intersection point.
+       
         check(eye, "Bad eye position given.");
 
         debug("Ray Tracing default scene...");
@@ -93,22 +147,39 @@ void default_scene(matrix_t* eye) {
          * sphere you hit, as you know it's the closest one.
          */ 
         Sphere* spheres[3] = {
-                newSphere(1.5, -0.2, -3.2, 1.23, 0.7, 0.7, 0.7),
-                newSphere(-1.5, 0.0, -3.5, 1.5,  0.6, 0.6, 0.6),
-                newSphere(-0.35, 1.75, -2.25, 0.5, 0.2, 0.2, 0.2)
+                newSphere(1.23,
+                          coglV3(1.5, -0.2, -3.2),  // Center
+                          coglV3(0.7, 0.7, 0.7),    // Ambient colour
+                          coglV3(0.1, 0.5, 0.8),    // Diffuse colour
+                          coglV3(1.0, 1.0, 1.0),    // Specular colour
+                          6),                       // Shininess
+                newSphere(1.5,
+                          coglV3(-1.5, 0.0, -3.5),
+                          coglV3(0.6, 0.6, 0.6),
+                          coglV3(1.0, 0.0, 0.25),
+                          coglV3(1.0, 1.0, 1.0),
+                          6),
+                newSphere(0.5,
+                          coglV3(-0.35, 1.75, -2.25),
+                          coglV3(0.2, 0.2, 0.2),
+                          coglV3(0.0, 1.0, 0.25),
+                          coglV3(0.0, 1.0, 0.0),
+                          30)
         };
 
         // n^2. Love it.
         for(i = 0; i < W_WIDTH; i++) {
                 for (j = 0; j < W_HEIGHT; j++) {
                         min_d = INFINITY;
+                        colour = NULL;
+                        curr_s = NULL;
+                        x      = NULL;
 
                         ray = coglVNormalize(coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
                                                     -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
                                                     -eye->m[2]));
 
-                        curr_s = NULL;
-
+                        // For each Sphere
                         for(k = 0; k < 3; k++) {
                                 curr_d = scaling_factor(spheres[k], eye, ray);
 
@@ -121,10 +192,14 @@ void default_scene(matrix_t* eye) {
                         if(curr_s) {
                                 total_hits++;
 
+                                // Calculate colour.
+                                x = coglMAddP(eye,coglMScale(ray,min_d));
+                                colour = light_scene(curr_s,x,eye,lPos);
+
                                 // Sphere's colour.
-                                buffer[j][i][0] = curr_s->colour->m[0];
-                                buffer[j][i][1] = curr_s->colour->m[1];
-                                buffer[j][i][2] = curr_s->colour->m[2];
+                                buffer[j][i][0] = colour->m[0];
+                                buffer[j][i][1] = colour->m[1];
+                                buffer[j][i][2] = colour->m[2];
                         } else {
                                 // Background colour.
                                 buffer[j][i][0] = 0.5;
@@ -227,8 +302,9 @@ int main(int argc, char** argv) {
         srand((GLuint)(100000 * glfwGetTime()));
 
         /* Set default scene */
-        matrix_t* eye = coglV3(0,0,2);
-        default_scene(eye);
+        matrix_t* eye  = coglV3(0,0,2);
+        matrix_t* lPos = coglV3(-2.0, 5.0, 1.0);
+        default_scene(eye, lPos);
         
         /* Fill `buffer` */
         //fill_buffer_randomly();
