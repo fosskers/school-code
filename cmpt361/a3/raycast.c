@@ -87,10 +87,9 @@ matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
         l = coglVNormalize(l);
         matrix_t* v = coglVNormalize(coglMSubP(eye, x));
         matrix_t* r = coglVNormalize(coglMSubP(coglMScale(
-                              n, 2 * coglVDotProduct(l,n)), l));
+                              coglMCopy(n), 2 * coglVDotProduct(l,n)), l));
 
         // `i` is global, `k` is constant for material
-        // use `powf`
         am = coglMScale(coglMCopy(s->ambient), scene_ambient);
         di = coglMScale(coglMCopy(s->diffuse),
                         scene_diffuse * max_of(0.0,
@@ -142,8 +141,10 @@ GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
 
         // If one is NaN, they both are.
         if(isnan(d1)) {
-                return d1;
-        } else if (d1 < d2) {
+                return NAN;
+        } else if(d1 < 0 || d2 < 0) {  // Keep an eye on this.
+                return NAN;
+        }else if (d1 < d2) {
                 return d1;
         } else {
                 return d2;
@@ -208,6 +209,7 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                         for(k = 0; k < 3; k++) {
                                 curr_d = scaling_factor(spheres[k], eye, ray);
 
+                                // Fails if curr_d == NAN.
                                 if(curr_d < min_d) {
                                         min_d = curr_d;
                                         curr_s = spheres[k];
