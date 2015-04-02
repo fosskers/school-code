@@ -84,7 +84,7 @@ matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
         GLfloat decay = 1 / (dec_a + dec_b * lDist + dec_c * lDist * lDist);
         
         matrix_t* n = coglVNormalize(coglMSubP(x, s->center));
-        l = coglVNormalize(coglMSubP(lPos, x));
+        l = coglVNormalize(l);
         matrix_t* v = coglVNormalize(coglMSubP(eye, x));
         matrix_t* r = coglVNormalize(coglMSubP(coglMScale(
                               n, 2 * coglVDotProduct(l,n)), l));
@@ -225,6 +225,10 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                                 buffer[j][i][0] = colour->m[0];
                                 buffer[j][i][1] = colour->m[1];
                                 buffer[j][i][2] = colour->m[2];
+
+                                // Free Vectory memory.
+                                coglMDestroy(colour);
+                                coglMDestroy(x);
                         } else {
                                 // Background colour.
                                 /*
@@ -238,12 +242,14 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                         }
 
                         coglMDestroy(ray);
-                        coglMDestroy(colour);
                 }
         }
 
         debug("Total Ray hits: %d", total_hits);
 
+        destroySphere(spheres[0]);
+        destroySphere(spheres[1]);
+        destroySphere(spheres[2]);
  error:
         return;
 }
@@ -326,8 +332,8 @@ int main(int argc, char** argv) {
         glEnable(GL_DEPTH_TEST);
 
         /* Blending */
-        //glEnable(GL_BLEND);
-        //glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
         /* Set initial randomness */
         srand((GLuint)(100000 * glfwGetTime()));
@@ -378,6 +384,9 @@ int main(int argc, char** argv) {
         }
         
         // Clean up.
+        coglMDestroy(eye);
+        coglMDestroy(lPos);
+        coglMDestroy(global_ambient);
         glfwTerminate();
         log_info("Done.");
 
