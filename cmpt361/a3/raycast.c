@@ -20,10 +20,12 @@ GLuint VAO;
 GLuint VBO;
 GLfloat buffer[W_HEIGHT][W_WIDTH][3];
 
+matrix_t* global_ambient = NULL;
+
 // --- //
 
 void key_callback(GLFWwindow* w, int key, int code, int action, int mode) {
-        if(action == GLFW_PRESS || key == GLFW_KEY_Q) {
+        if(action == GLFW_PRESS && key == GLFW_KEY_Q) {
                 glfwSetWindowShouldClose(w, GL_TRUE);
         }
 }
@@ -58,44 +60,64 @@ void fill_buffer_randomly() {
 
 // I think we can make this more general, to light any scene.
 matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
+        matrix_t* am = NULL;  // Ambient colour
+        matrix_t* di = NULL;  // Diffuse colour
+        matrix_t* sp = NULL;  // Specular colour
+
         // Constants for the scene
         GLfloat scene_ambient  = 0.1;
         GLfloat scene_diffuse  = 1.0;
         GLfloat scene_specular = 1.0;
 
+        // Light decay with distance
+        GLfloat dec_a = 0.5;
+        GLfloat dec_b = 0.3;
+        GLfloat dec_c = 0.0;
+
         check(s, "Null Sphere given.");
         check(x, "Null Point given.");
         check(eye, "Null eye given.");
         check(lPos, "Null light position given.");
+
+        matrix_t* l = coglMSubP(lPos, x);
+        GLfloat lDist = coglVLength(l);
+        GLfloat decay = 1 / (dec_a + dec_b * lDist + dec_c * lDist * lDist);
         
         matrix_t* n = coglVNormalize(coglMSubP(x, s->center));
-        matrix_t* l = coglVNormalize(coglMSubP(lPos, x));
+        l = coglVNormalize(coglMSubP(lPos, x));
         matrix_t* v = coglVNormalize(coglMSubP(eye, x));
         matrix_t* r = coglVNormalize(coglMSubP(coglMScale(
                               n, 2 * coglVDotProduct(l,n)), l));
 
-        //coglMPrint(s->diffuse);
-
         // `i` is global, `k` is constant for material
         // use `powf`
-        // Terms in solution
-        matrix_t* t1 = coglMScale(coglMCopy(s->ambient), scene_ambient);
-        matrix_t* t2 = coglMScale(coglMCopy(s->diffuse),
-                                  scene_diffuse * max_of(0.0,
-                                                         coglVDotProduct(l,n)));
-        matrix_t* t3 = coglMScale(coglMCopy(s->specular),
-                                  scene_specular * powf(max_of(0.0,
-                                                               coglVDotProduct(r,v)),
-                                                        s->shininess));
-        
-        matrix_t* terms[3] = { t1, t2, t3 };
+        am = coglMScale(coglMCopy(s->ambient), scene_ambient);
+        di = coglMScale(coglMCopy(s->diffuse),
+                        scene_diffuse * max_of(0.0,
+                                               coglVDotProduct(l,n)));
 
+        sp = coglMScale(coglMCopy(s->specular),
+                        scene_specular * powf(max_of(0.0,
+                                                     coglVDotProduct(r,v)),
+                                              s->shininess));
+
+        matrix_t* ref = coglMScale(coglMCopy(global_ambient), s->reflectance);
+        matrix_t* di_sp = coglMScale(coglMAddP(di,sp), decay);
+        matrix_t* terms[3] = { ref, am, di_sp };
         matrix_t* sum = coglMSumsP(terms, 3);
 
-        //coglMPrint(t2);
+        // Free memory
+        coglMDestroy(n);
+        coglMDestroy(l);
+        coglMDestroy(v);
+        coglMDestroy(r);
+        coglMDestroy(am);
+        coglMDestroy(di);
+        coglMDestroy(sp);
+        coglMDestroy(ref);
+        coglMDestroy(di_sp);
 
         return sum;
-
  error:
         return NULL;
 }
@@ -152,25 +174,28 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                           coglV3(0.7, 0.7, 0.7),    // Ambient colour
                           coglV3(0.1, 0.5, 0.8),    // Diffuse colour
                           coglV3(1.0, 1.0, 1.0),    // Specular colour
-                          6),                       // Shininess
+                          10,                       // Shininess
+                          0.4),                     // Ambient Reflectance
                 newSphere(1.5,
                           coglV3(-1.5, 0.0, -3.5),
                           coglV3(0.6, 0.6, 0.6),
                           coglV3(1.0, 0.0, 0.25),
                           coglV3(1.0, 1.0, 1.0),
-                          6),
+                          6,
+                          0.3),
                 newSphere(0.5,
                           coglV3(-0.35, 1.75, -2.25),
                           coglV3(0.2, 0.2, 0.2),
                           coglV3(0.0, 1.0, 0.25),
                           coglV3(0.0, 1.0, 0.0),
-                          30)
+                          30,
+                          0.3)
         };
 
         // n^2. Love it.
         for(i = 0; i < W_WIDTH; i++) {
                 for (j = 0; j < W_HEIGHT; j++) {
-                        min_d = INFINITY;
+                        min_d  = INFINITY;
                         colour = NULL;
                         curr_s = NULL;
                         x      = NULL;
@@ -202,12 +227,18 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                                 buffer[j][i][2] = colour->m[2];
                         } else {
                                 // Background colour.
+                                /*
                                 buffer[j][i][0] = 0.5;
                                 buffer[j][i][1] = 0.5;
                                 buffer[j][i][2] = 0.8;
+                                */
+                                buffer[j][i][0] = 0.1;
+                                buffer[j][i][1] = 0.1;
+                                buffer[j][i][2] = 0.1;
                         }
 
                         coglMDestroy(ray);
+                        coglMDestroy(colour);
                 }
         }
 
@@ -304,6 +335,8 @@ int main(int argc, char** argv) {
         /* Set default scene */
         matrix_t* eye  = coglV3(0,0,2);
         matrix_t* lPos = coglV3(-2.0, 5.0, 1.0);
+        global_ambient = coglV3(0.2, 0.2, 0.2);
+        //matrix_t* lPos = coglV3(-2.0, 5.0, 7.5);
         default_scene(eye, lPos);
         
         /* Fill `buffer` */
