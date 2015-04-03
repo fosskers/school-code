@@ -8,6 +8,7 @@
 
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
+#include "material.h"
 #include "sphere.h"
 
 // --- //
@@ -59,7 +60,7 @@ void fill_buffer_randomly() {
 }
 
 // I think we can make this more general, to light any scene.
-matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
+matrix_t* light_scene(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, matrix_t* lPos) {
         matrix_t* am = NULL;  // Ambient colour
         matrix_t* di = NULL;  // Diffuse colour
         matrix_t* sp = NULL;  // Specular colour
@@ -74,39 +75,38 @@ matrix_t* light_scene(Sphere* s, matrix_t* x, matrix_t* eye, matrix_t* lPos) {
         GLfloat dec_b = 0.3;
         GLfloat dec_c = 0.0;
 
-        check(s, "Null Sphere given.");
+        check(m, "Null Material given.");
         check(x, "Null Point given.");
-        check(eye, "Null eye given.");
+        check(n, "Null Normal given.");
+        check(eye, "Null eye position given.");
         check(lPos, "Null light position given.");
 
         matrix_t* l = coglMSubP(lPos, x);
         GLfloat lDist = coglVLength(l);
         GLfloat decay = 1 / (dec_a + dec_b * lDist + dec_c * lDist * lDist);
         
-        matrix_t* n = coglVNormalize(coglMSubP(x, s->center));
+        //matrix_t* n = coglVNormalize(coglMSubP(x, s->center));
         l = coglVNormalize(l);
         matrix_t* v = coglVNormalize(coglMSubP(eye, x));
-        matrix_t* r = coglVNormalize(coglMSubP(coglMScale(
-                              coglMCopy(n), 2 * coglVDotProduct(l,n)), l));
+        matrix_t* r = coglVNormalize(coglMSub(coglMScaleP(
+                              n, 2 * coglVDotProduct(l,n)), l));
 
         // `i` is global, `k` is constant for material
-        am = coglMScale(coglMCopy(s->ambient), scene_ambient);
-        di = coglMScale(coglMCopy(s->diffuse),
+        am = coglMScaleP(m->ambient, scene_ambient);
+        di = coglMScaleP(m->diffuse,
                         scene_diffuse * max_of(0.0,
                                                coglVDotProduct(l,n)));
-
-        sp = coglMScale(coglMCopy(s->specular),
+        sp = coglMScaleP(m->specular,
                         scene_specular * powf(max_of(0.0,
                                                      coglVDotProduct(r,v)),
-                                              s->shininess));
+                                              m->shininess));
 
-        matrix_t* ref = coglMScale(coglMCopy(global_ambient), s->reflectance);
+        matrix_t* ref = coglMScaleP(global_ambient, m->reflectance);
         matrix_t* di_sp = coglMScale(coglMAddP(di,sp), decay);
         matrix_t* terms[3] = { ref, am, di_sp };
         matrix_t* sum = coglMSumsP(terms, 3);
 
         // Free memory
-        coglMDestroy(n);
         coglMDestroy(l);
         coglMDestroy(v);
         coglMDestroy(r);
@@ -160,6 +160,7 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
         matrix_t* colour = NULL;  // Final pixel colour.
         matrix_t* ray = NULL;     // Normalized ray from eye.
         matrix_t* x = NULL;       // The Ray/Sphere intersection point.
+        matrix_t* n = NULL;       // Normal from point `x`.
        
         check(eye, "Bad eye position given.");
 
@@ -200,6 +201,7 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                         colour = NULL;
                         curr_s = NULL;
                         x      = NULL;
+                        n      = NULL;
 
                         ray = coglVNormalize(coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
                                                     -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
@@ -221,7 +223,8 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
 
                                 // Calculate colour.
                                 x = coglMAddP(eye,coglMScale(ray,min_d));
-                                colour = light_scene(curr_s,x,eye,lPos);
+                                n = coglVNormalize(coglMSubP(x, curr_s->center));
+                                colour = light_scene(curr_s->mat,x,n,eye,lPos);
 
                                 // Sphere's colour.
                                 buffer[j][i][0] = colour->m[0];
@@ -231,16 +234,12 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                                 // Free Vectory memory.
                                 coglMDestroy(colour);
                                 coglMDestroy(x);
+                                coglMDestroy(n);
                         } else {
                                 // Background colour.
-                                /*
                                 buffer[j][i][0] = 0.5;
-                                buffer[j][i][1] = 0.5;
+                                buffer[j][i][1] = 0.05;
                                 buffer[j][i][2] = 0.8;
-                                */
-                                buffer[j][i][0] = 0.1;
-                                buffer[j][i][1] = 0.1;
-                                buffer[j][i][2] = 0.1;
                         }
 
                         coglMDestroy(ray);
