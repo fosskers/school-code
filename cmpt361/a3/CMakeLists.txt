@@ -8,5 +8,5 @@ set(CMAKE_CXX_FLAGS "-g -O -fdiagnostics-color -Wall -Wshadow -Wunreachable-code
 include_directories("$(PROJECT_SOURCE_DIR)/cog")
 add_subdirectory(cog)
 
-add_executable(raycast raycast.c sphere.c material.c)
+add_executable(raycast raycast.c sphere.c material.c lighting.c)
 target_link_libraries(raycast m GL glfw GLEW pthread cogl cogs)
