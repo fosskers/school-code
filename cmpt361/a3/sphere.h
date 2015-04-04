@@ -9,7 +9,7 @@
 // --- //
 
 typedef struct {
-        GLuint id;         // Sphere's ID
+        GLint id;          // Sphere's ID
         GLfloat radius;
         matrix_t* center;  // Center position :: vec3
         Material* mat;     // Colour data
@@ -18,7 +18,7 @@ typedef struct {
 // --- //
 
 /* Create a sphere, given its center coordinates, a radius, and colours */
-Sphere* newSphere(GLuint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, matrix_t* s, GLfloat shininess, GLfloat reflectance);
+Sphere* newSphere(GLint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, matrix_t* s, GLfloat shininess, GLfloat reflectance);
 
 /* Free a Sphere's memory */
 void destroySphere(Sphere* s);

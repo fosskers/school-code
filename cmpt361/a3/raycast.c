@@ -64,14 +64,17 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
 
         // For every pixel
         for(i = 0; i < W_WIDTH; i++) {
-                for (j = 0; j < W_HEIGHT; j++) {                        
+                for (j = 0; j < W_HEIGHT; j++) {
+                        //debug("(%d,%d)", i,j);
+
                         ray = coglVNormalize(
                               coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
                                      -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
                                      -eye->m[2]));
-                        colour = pixel_colour(ray,eye,lPos);
+                        // TODO: Get rec_depth from user.
+                        colour = pixel_colour(ray,eye,lPos,2,-1);
 
-                        if(colour) {                                
+                        if(colour) {
                                 total_hits++;
 
                                 if(total_hits % 10000 == 0) {

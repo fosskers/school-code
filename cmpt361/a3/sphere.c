@@ -7,7 +7,7 @@
 // --- //
 
 /* Create a sphere, given its center coordinates, a radius, and colours */
-Sphere* newSphere(GLuint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, matrix_t* s, GLfloat shininess, GLfloat reflectance) {
+Sphere* newSphere(GLint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, matrix_t* s, GLfloat shininess, GLfloat reflectance) {
         Sphere* newS = NULL;
 
         check(r > 0, "Non-positive radius given.");
