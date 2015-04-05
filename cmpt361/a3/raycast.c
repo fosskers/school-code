@@ -65,8 +65,6 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
         // For every pixel
         for(i = 0; i < W_WIDTH; i++) {
                 for (j = 0; j < W_HEIGHT; j++) {
-                        //debug("(%d,%d)", i,j);
-
                         ray = coglVNormalize(
                               coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
                                      -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
