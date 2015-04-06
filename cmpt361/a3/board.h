@@ -19,4 +19,7 @@ Board* newBoard(matrix_t* n, matrix_t* o, Material* m);
 /* Free a Board's memory */
 void destroyBoard(Board* b);
 
+/* If a Ray hits a Board, how far away is the contact Point? */
+GLfloat scalar_to_board(Board* s, matrix_t* eye, matrix_t* ray);
+
 #endif

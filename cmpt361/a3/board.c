@@ -1,7 +1,9 @@
+#include <math.h>
 #include <stdlib.h>
 
 #include "board.h"
 #include "cog/dbg.h"
+#include "cog/linalg/linalg.h"
 
 // --- //
 
@@ -35,4 +37,13 @@ void destroyBoard(Board* b) {
         free(b);
  error:
         return;
+}
+
+/* If a Ray hits a Board, how far away is the contact Point? */
+GLfloat scalar_to_board(Board* s, matrix_t* eye, matrix_t* ray) {
+        matrix_t* eye_to_origin = coglMSubP(s->origin,eye);
+        GLfloat numer = coglVDotProduct(eye_to_origin,s->normal);
+        GLfloat denom = coglVDotProduct(ray,s->normal);
+
+        return numer / denom;
 }

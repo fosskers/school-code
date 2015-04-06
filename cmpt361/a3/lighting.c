@@ -2,7 +2,6 @@
 
 #include "cog/dbg.h"
 #include "lighting.h"
-#include "scene.h"
 
 // --- //
 
@@ -126,36 +125,6 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         return NULL;
 }
 
-/* Returns the scaling factor `d`, if there is one.
- * Arguments aren't checked for NULL, so don't fuck it up.
- *
- * s   := The sphere the Ray might be hitting.
- * eye := Our eye position
- * ray := Normalized direction vector from eye.
- */
-GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
-        matrix_t* ray_to_center = coglMSubP(eye, s->center);
-        GLfloat dotProd = coglVDotProduct(ray, ray_to_center);
-        GLfloat len = coglVLength(ray_to_center);
-        GLfloat inner = dotProd * dotProd - len * len + s->radius * s->radius;
-
-        GLfloat d1 = -dotProd + sqrt(inner);
-        GLfloat d2 = -dotProd - sqrt(inner);
-
-        coglMDestroy(ray_to_center);
-
-        // If one is NaN, they both are.
-        if(isnan(d1)) {
-                return NAN;
-        } else if(d1 < 0 || d2 < 0) {  // Keep an eye on this.
-                return NAN;
-        } else if (d1 < d2 && d1 > 0) {
-                return d1;
-        } else {
-                return d2;
-        }
-}
-
 /* The final colour of a pixel pointed to by a Ray */
 matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore) {
         GLfloat curr_d;
@@ -173,18 +142,18 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, 
         }
         
         // For each Sphere
-        for(k = 0; k < 3; k++) {
-                if(spheres[k]->id == ignore) {
+        for(k = 0; k < env->num_spheres; k++) {
+                if(env->spheres[k]->id == ignore) {
                         continue;
                 }
 
                 // Is there a `d`?
-                curr_d = scaling_factor(spheres[k], eye, ray);
+                curr_d = scalar_to_sphere(env->spheres[k], eye, ray);
 
                 // Fails if curr_d == NAN.
                 if(curr_d < min_d) {
                         min_d = curr_d;
-                        curr_s = spheres[k];
+                        curr_s = env->spheres[k];
                 }
         }
 

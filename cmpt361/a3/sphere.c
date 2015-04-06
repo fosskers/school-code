@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 
 #include "cog/dbg.h"
 #include "cog/linalg/linalg.h"
@@ -34,4 +35,34 @@ void destroySphere(Sphere* s) {
 
  error:
         return;
+}
+
+/* Returns the scaling factor `d`, if there is one.
+ * Arguments aren't checked for NULL, so don't fuck it up.
+ *
+ * s   := The sphere the Ray might be hitting.
+ * eye := Our eye position
+ * ray := Normalized direction vector from eye.
+ */
+GLfloat scalar_to_sphere(Sphere* s, matrix_t* eye, matrix_t* ray) {
+        matrix_t* ray_to_center = coglMSubP(eye, s->center);
+        GLfloat dotProd = coglVDotProduct(ray, ray_to_center);
+        GLfloat len = coglVLength(ray_to_center);
+        GLfloat inner = dotProd * dotProd - len * len + s->radius * s->radius;
+
+        GLfloat d1 = -dotProd + sqrt(inner);
+        GLfloat d2 = -dotProd - sqrt(inner);
+
+        coglMDestroy(ray_to_center);
+
+        // If one is NaN, they both are.
+        if(isnan(d1)) {
+                return NAN;
+        } else if(d1 < 0 || d2 < 0) {  // Keep an eye on this.
+                return NAN;
+        } else if (d1 < d2 && d1 > 0) {
+                return d1;
+        } else {
+                return d2;
+        }
 }

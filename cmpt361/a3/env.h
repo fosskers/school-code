@@ -4,25 +4,35 @@
 #include <GL/glew.h>
 #include <stdbool.h>
 
+#include "board.h"
 #include "cog/linalg/linalg.h"
+#include "sphere.h"
 
 // --- //
 
 typedef struct {
-        GLint rec_depth;
+        /* Flags */
         bool render_default;
         bool chess_board;
         bool shadows;
         bool reflections;
         bool refraction;
+
+        /* Scene objects */
+        Sphere** spheres;
+        GLuint num_spheres;
+        Board* board;
+        
+        /* Other settings */
+        GLint rec_depth;
         matrix_t* lPos;
         matrix_t* global_ambient;
 } Env;
 
 /* Set the rendering environment */
-Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga);
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b);
 
 /* Free environment memory */
-void envDestroy(Env* env);
+void destroyEnv(Env* env);
 
 #endif

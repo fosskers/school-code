@@ -23,4 +23,7 @@ Sphere* newSphere(GLint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, ma
 /* Free a Sphere's memory */
 void destroySphere(Sphere* s);
 
+/* If a Ray hits an object, how far away is the contact Point? */
+GLfloat scalar_to_sphere(Sphere* s, matrix_t* eye, matrix_t* ray);
+
 #endif

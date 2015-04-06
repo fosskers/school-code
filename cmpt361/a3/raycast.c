@@ -12,7 +12,6 @@
 #include "env.h"
 #include "lighting.h"
 #include "material.h"
-#include "scene.h"
 #include "sphere.h"
 
 // --- //
@@ -183,14 +182,17 @@ int main(int argc, char** argv) {
         srand((GLuint)(100000 * glfwGetTime()));
 
         /* Set default Environment */
-        Env* env = newEnv(1,
+        Env* env = newEnv(1,                       // Recursion depth
                           true,                    // Render default scene?
                           false,                   // Check board
                           false,                   // Show shadows?
                           false,                   // Show reflections?
                           false,                   // Show refractions?
                           coglV3(-2.0, 5.0, 1.0),  // Light position
-                          coglV3(0.2, 0.2, 0.2));  // Global ambient colour
+                          coglV3(0.2, 0.2, 0.2),   // Global ambient colour
+                          NULL,                    // Spheres
+                          0,                       // # of spheres
+                          NULL);                   // Chess Board  
 
         /* Set user-specified options */
         check(argc >= 3, "Not enough arguments given.");
@@ -206,35 +208,40 @@ int main(int argc, char** argv) {
         }
 
         /* Set default spheres */
-        spheres[0] = newSphere(0,
-                               1.23,
-                               coglV3(1.5, -0.2, -3.2), // Center
-                               coglV3(0.7, 0.7, 0.7),   // Ambient colour
-                               coglV3(0.1, 0.5, 0.8),   // Diffuse colour
-                               coglV3(1.0, 1.0, 1.0),   // Specular colour
-                               10,                      // Shininess
-                               0.4);                    // Ambient Reflectance
-        spheres[1] = newSphere(1,
-                               1.5,
-                               coglV3(-1.5, 0.0, -3.5),
-                               coglV3(0.6, 0.6, 0.6),
-                               coglV3(1.0, 0.0, 0.25),
-                               coglV3(1.0, 1.0, 1.0),
-                               6,
-                               0.3);
-        spheres[2] = newSphere(2,
-                               0.5,
-                               coglV3(-0.35, 1.75, -2.25),
-                               coglV3(0.2, 0.2, 0.2),
-                               coglV3(0.0, 1.0, 0.25),
-                               coglV3(0.0, 1.0, 0.0),
-                               30,
-                               0.3);
-        
+        Sphere* spheres[3] = {
+                newSphere(0,
+                          1.23,                    // Radius
+                          coglV3(1.5, -0.2, -3.2), // Center
+                          coglV3(0.7, 0.7, 0.7),   // Ambient colour
+                          coglV3(0.1, 0.5, 0.8),   // Diffuse colour
+                          coglV3(1.0, 1.0, 1.0),   // Specular colour
+                          10,                      // Shininess
+                          0.4),                    // Ambient Reflectance
+                newSphere(1,
+                          1.5,
+                          coglV3(-1.5, 0.0, -3.5),
+                          coglV3(0.6, 0.6, 0.6),
+                          coglV3(1.0, 0.0, 0.25),
+                          coglV3(1.0, 1.0, 1.0),
+                          6,
+                          0.3),
+                newSphere(2,
+                          0.5,
+                          coglV3(-0.35, 1.75, -2.25),
+                          coglV3(0.2, 0.2, 0.2),
+                          coglV3(0.0, 1.0, 0.25),
+                          coglV3(0.0, 1.0, 0.0),
+                          30,
+                          0.3)
+        };
+
+        env->spheres = spheres;
+        env->num_spheres = 3;
+
         /* Set default scene */
         matrix_t* eye = coglV3(0,0,2);
         default_scene(env,eye);
-        envDestroy(env);
+        destroyEnv(env);
         
         /* Fill `buffer` */
         //fill_buffer_randomly();
