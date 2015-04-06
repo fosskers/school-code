@@ -131,11 +131,12 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, 
         GLfloat curr_d;
         GLfloat min_d = INFINITY;
         GLuint k;
+        GLint x,z;
         Sphere* curr_s   = NULL;
         bool board_hit   = false; // Was the Chess board hit?
         matrix_t* colour = NULL;  // Final pixel colour.
         matrix_t* n      = NULL;  // Normal from point `x`.
-        matrix_t* x      = NULL;  // The Ray/Sphere intersection point.
+        matrix_t* p      = NULL;  // The Ray/Sphere intersection point.
 
         check(env, "Null environment given.");
 
@@ -171,22 +172,33 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, 
 
         if(curr_s && min_d < board_d) {
                 // Calculate colour.
-                x = coglMAddP(eye,coglMScale(ray,min_d));
-                n = coglVNormalize(coglMSubP(x, curr_s->center));
-                colour = material_colour(curr_s->mat,x,n,eye,env,
+                p = coglMAddP(eye,coglMScale(ray,min_d));
+                n = coglVNormalize(coglMSubP(p, curr_s->center));
+                colour = material_colour(curr_s->mat,p,n,eye,env,
                                          rec_depth,curr_s->id,false);
 
                 // Free Vector memory.
-                coglMDestroy(x);
+                coglMDestroy(p);
                 coglMDestroy(n);
         } else if(board_hit) {
-                x = coglMAddP(eye,coglMScale(ray,board_d));
-                n = env->board->normal;
-                colour = material_colour(env->board->mat,x,n,eye,env,
-                                         rec_depth,-1,true);
+                p = coglMAddP(eye,coglMScale(ray,board_d));
+
+                if(point_in_board(env->board,p)) {
+                        n = env->board->normal;
+                        colour = material_colour(env->board->mat,p,n,eye,env,
+                                                 rec_depth,-1,true);
+
+                        x = floor(p->m[0] / 2.0);
+                        z = floor(p->m[2] / 2.0);
+
+                        if((x+z) % 2 == 0) {
+                                colour = coglMScale(colour,0.5);
+                        }
+                }
 
                 // Free Vector memory.
-                coglMDestroy(x);
+                coglMDestroy(p);
+                //coglMDestroy(n);
         }
 
         return colour;

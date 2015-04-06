@@ -52,3 +52,18 @@ GLfloat scalar_to_board(Board* b, matrix_t* eye, matrix_t* ray) {
                 return NAN;
         }
 }
+
+/* Does a given point sit on the Board? */
+bool point_in_board(Board* b, matrix_t* point) {
+        check(b, "Null Board given.");
+        check(point, "Null point given.");
+
+        if(point->m[0] >= b->origin->m[0] &&
+           point->m[0] <= b->origin->m[0] + 16 &&
+           point->m[2] <= b->origin->m[2] &&
+           point->m[2] >= b->origin->m[2] - 16) {
+                return true;
+        }
+ error:
+        return false;
+}
