@@ -40,10 +40,15 @@ void destroyBoard(Board* b) {
 }
 
 /* If a Ray hits a Board, how far away is the contact Point? */
-GLfloat scalar_to_board(Board* s, matrix_t* eye, matrix_t* ray) {
-        matrix_t* eye_to_origin = coglMSubP(s->origin,eye);
-        GLfloat numer = coglVDotProduct(eye_to_origin,s->normal);
-        GLfloat denom = coglVDotProduct(ray,s->normal);
-
-        return numer / denom;
+GLfloat scalar_to_board(Board* b, matrix_t* eye, matrix_t* ray) {
+        matrix_t* eye_to_origin = coglMSubP(b->origin,eye);
+        GLfloat numer = coglVDotProduct(eye_to_origin,b->normal);
+        GLfloat denom = coglVDotProduct(ray,b->normal);
+        GLfloat result = numer / denom;
+        
+        if(result > 0) {
+                return result;
+        } else {
+                return NAN;
+        }
 }

@@ -15,9 +15,9 @@ GLfloat max_of(GLfloat f1, GLfloat f2) {
 }
 
 /* Is a particular point facing the light source? */
-bool is_facing_light(matrix_t* x, Env* env, GLint rec_depth, GLint ignore) {
+bool is_facing_light(matrix_t* x, Env* env, GLint rec_depth, GLint ignore, bool ignoreBoard) {
         matrix_t* ray = coglVNormalize(coglMSubP(env->lPos, x));
-        matrix_t* colour = pixel_colour(ray,x,env,rec_depth - 1, ignore);
+        matrix_t* colour = pixel_colour(ray,x,env,rec_depth - 1, ignore, ignoreBoard);
         
         // If a colour was found, the ray hit something, and thus
         // the Point isn't facing the light source.
@@ -35,7 +35,7 @@ bool is_facing_light(matrix_t* x, Env* env, GLint rec_depth, GLint ignore) {
 }
 
 /* Finds colour for a Point, based on its material properties */
-matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore) {
+matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore, bool ignoreBoard) {
         matrix_t* am = NULL;  // Ambient colour
         matrix_t* di = NULL;  // Diffuse colour
         matrix_t* sp = NULL;  // Specular colour
@@ -81,7 +81,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         matrix_t* di_sp = coglMScale(coglMAddP(di,sp), decay);
 
         /* Shadows */
-        if(env->shadows && !is_facing_light(x,env,rec_depth,ignore)) {
+        if(env->shadows && !is_facing_light(x,env,rec_depth,ignore,ignoreBoard)) {
                 coglMScale(di_sp, 0);
         }
 
@@ -94,7 +94,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         /* Reflections */
         matrix_t* ref;
         if(env->reflections) {
-                ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore);
+                ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore, ignoreBoard);
                 if(ref) {
                         ref = coglMScale(ref, m->reflectance);
                 } else {
@@ -126,11 +126,13 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
 }
 
 /* The final colour of a pixel pointed to by a Ray */
-matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore) {
+matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore, bool ignoreBoard) {
+        GLfloat board_d = INFINITY;
         GLfloat curr_d;
         GLfloat min_d = INFINITY;
         GLuint k;
         Sphere* curr_s   = NULL;
+        bool board_hit   = false; // Was the Chess board hit?
         matrix_t* colour = NULL;  // Final pixel colour.
         matrix_t* n      = NULL;  // Normal from point `x`.
         matrix_t* x      = NULL;  // The Ray/Sphere intersection point.
@@ -140,7 +142,17 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, 
         if(rec_depth < 0) {
                 return NULL;
         }
-        
+
+        /* Chess Board intersection check */
+        if(env->chess_board && !ignoreBoard) {
+                board_d = scalar_to_board(env->board, eye, ray);
+                if(!isnan(board_d)) {
+                        board_hit = true;
+                } else {
+                        board_d = INFINITY;
+                }
+        }
+
         // For each Sphere
         for(k = 0; k < env->num_spheres; k++) {
                 if(env->spheres[k]->id == ignore) {
@@ -157,16 +169,24 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, 
                 }
         }
 
-        if(curr_s) {
+        if(curr_s && min_d < board_d) {
                 // Calculate colour.
                 x = coglMAddP(eye,coglMScale(ray,min_d));
                 n = coglVNormalize(coglMSubP(x, curr_s->center));
                 colour = material_colour(curr_s->mat,x,n,eye,env,
-                                         rec_depth,curr_s->id);
+                                         rec_depth,curr_s->id,false);
 
-                // Free Vectory memory.
+                // Free Vector memory.
                 coglMDestroy(x);
                 coglMDestroy(n);
+        } else if(board_hit) {
+                x = coglMAddP(eye,coglMScale(ray,board_d));
+                n = env->board->normal;
+                colour = material_colour(env->board->mat,x,n,eye,env,
+                                         rec_depth,-1,true);
+
+                // Free Vector memory.
+                coglMDestroy(x);
         }
 
         return colour;

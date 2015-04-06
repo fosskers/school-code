@@ -71,7 +71,7 @@ void default_scene(Env* env, matrix_t* eye) {
                                      -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
                                      -eye->m[2]));
 
-                        colour = pixel_colour(ray,eye,env,env->rec_depth,-1);
+                        colour = pixel_colour(ray,eye,env,env->rec_depth,-1,false);
 
                         if(colour) {
                                 total_hits++;
@@ -204,6 +204,8 @@ int main(int argc, char** argv) {
                         env->shadows = true;
                 } else if(strcmp(argv[i],"+l") == 0) {
                         env->reflections = true;
+                } else if(strcmp(argv[i],"+c") == 0) {
+                        env->chess_board = true;
                 }
         }
 
@@ -237,6 +239,15 @@ int main(int argc, char** argv) {
 
         env->spheres = spheres;
         env->num_spheres = 3;
+
+        /* Set Chess Board */
+        env->board = newBoard(coglV3(0,1,0),     // Normal
+                              coglV3(-8,-8,-8),  // Origin
+                              newMaterial(coglV3(0.7, 0.7, 0.7),
+                                          coglV3(0.1, 0.5, 0.8),
+                                          coglV3(1.0, 1.0, 1.0),
+                                          10,
+                                          0.4));
 
         /* Set default scene */
         matrix_t* eye = coglV3(0,0,2);
