@@ -6,7 +6,7 @@
 // --- //
 
 /* Set the rendering environment */
-Env* newEnv(GLuint rd, bool c, bool s, bool refl, bool refr) {
+Env* newEnv(GLuint rd, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga) {
         Env* e = malloc(sizeof(Env));
         check_mem(e);
 
@@ -15,8 +15,22 @@ Env* newEnv(GLuint rd, bool c, bool s, bool refl, bool refr) {
         e->shadows = s;
         e->reflections = refl;
         e->refraction = refr;
+        e->lPos = l;
+        e->global_ambient = ga;
 
         return e;
  error:
         return NULL;
+}
+
+/* Free environment memory */
+void envDestroy(Env* env) {
+        check(env, "Can't free Null environment.");
+
+        free(env->lPos);
+        free(env->global_ambient);
+        free(env);
+
+ error:
+        return;
 }

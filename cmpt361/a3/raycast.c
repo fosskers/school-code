@@ -8,6 +8,7 @@
 
 #include "cog/dbg.h"
 #include "cog/shaders/shaders.h"
+#include "env.h"
 #include "lighting.h"
 #include "material.h"
 #include "scene.h"
@@ -52,13 +53,13 @@ void fill_buffer_randomly() {
 }
 
 /* Ray Trace a few Spheres. Modifies given buffer */
-void default_scene(matrix_t* eye, matrix_t* lPos) {
+void default_scene(Env* env, matrix_t* eye) {
         GLuint i,j;
         GLuint total_hits = 0;
         matrix_t* colour;
         matrix_t* ray;
        
-        check(eye, "Bad eye position given.");
+        check(env, "Null environment given.");
 
         debug("Ray Tracing default scene...");
 
@@ -69,8 +70,8 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                               coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
                                      -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
                                      -eye->m[2]));
-                        // TODO: Get rec_depth from user.
-                        colour = pixel_colour(ray,eye,lPos,2,-1);
+
+                        colour = pixel_colour(ray,eye,env,env->rec_depth,-1);
 
                         if(colour) {
                                 total_hits++;
@@ -89,6 +90,7 @@ void default_scene(matrix_t* eye, matrix_t* lPos) {
                                 buffer[j][i][2] = 0.8;
                         }
 
+                        coglMDestroy(colour);
                         coglMDestroy(ray);
                 }
         }
@@ -210,11 +212,17 @@ int main(int argc, char** argv) {
                                0.3);
         
         /* Set default scene */
-        matrix_t* eye  = coglV3(0,0,2);
-        matrix_t* lPos = coglV3(-2.0, 5.0, 1.0);
-        global_ambient = coglV3(0.2, 0.2, 0.2);
-        //matrix_t* lPos = coglV3(-2.0, 5.0, 7.5);
-        default_scene(eye, lPos);
+        matrix_t* eye = coglV3(0,0,2);
+        Env* env = newEnv(2,
+                          false,                   // Check board
+                          true,                    // Show shadows?
+                          true,                    // Show reflections?
+                          false,                   // Show refractions?
+                          coglV3(-2.0, 5.0, 1.0),  // Light position
+                          coglV3(0.2, 0.2, 0.2));  // Global ambient colour
+
+        default_scene(env,eye);
+        envDestroy(env);
         
         /* Fill `buffer` */
         //fill_buffer_randomly();
@@ -255,9 +263,6 @@ int main(int argc, char** argv) {
         }
         
         // Clean up.
-        coglMDestroy(eye);
-        coglMDestroy(lPos);
-        coglMDestroy(global_ambient);
         glfwTerminate();
         log_info("Done.");
 

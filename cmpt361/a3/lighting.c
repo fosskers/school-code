@@ -16,9 +16,9 @@ GLfloat max_of(GLfloat f1, GLfloat f2) {
 }
 
 /* Is a particular point facing the light source? */
-bool is_facing_light(matrix_t* x, matrix_t* lPos, GLuint rec_depth, GLint ignore) {
-        matrix_t* ray = coglVNormalize(coglMSubP(lPos, x));
-        matrix_t* colour = pixel_colour(ray,x,lPos,rec_depth - 1, ignore);
+bool is_facing_light(matrix_t* x, Env* env, GLuint rec_depth, GLint ignore) {
+        matrix_t* ray = coglVNormalize(coglMSubP(env->lPos, x));
+        matrix_t* colour = pixel_colour(ray,x,env,rec_depth - 1, ignore);
         
         // If a colour was found, the ray hit something, and thus
         // the Point isn't facing the light source.
@@ -36,7 +36,7 @@ bool is_facing_light(matrix_t* x, matrix_t* lPos, GLuint rec_depth, GLint ignore
 }
 
 /* Finds colour for a Point, based on its material properties */
-matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, matrix_t* lPos, GLuint rec_depth, GLint ignore) {
+matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, Env* env, GLuint rec_depth, GLint ignore) {
         matrix_t* am = NULL;  // Ambient colour
         matrix_t* di = NULL;  // Diffuse colour
         matrix_t* sp = NULL;  // Specular colour
@@ -55,9 +55,9 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         check(x, "Null Point given.");
         check(n, "Null Normal given.");
         check(eye, "Null eye position given.");
-        check(lPos, "Null light position given.");
+        check(env->lPos, "Null light position given.");
 
-        matrix_t* l = coglMSubP(lPos, x);
+        matrix_t* l = coglMSubP(env->lPos, x);
         GLfloat lDist = coglVLength(l);
         GLfloat decay = 1 / (dec_a + dec_b * lDist + dec_c * lDist * lDist);
         
@@ -77,11 +77,12 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
                                                m->shininess));
 
         // This might be wrong.
-        matrix_t* g_am  = coglMScaleP(global_ambient, m->reflectance);
+        matrix_t* g_am  = coglMScaleP(env->global_ambient,
+                                      m->reflectance);
         matrix_t* di_sp = coglMScale(coglMAddP(di,sp), decay);
 
         /* Shadows */
-        if(!is_facing_light(x,lPos,rec_depth,ignore)) {
+        if(!is_facing_light(x,env,rec_depth,ignore)) {
                 coglMScale(di_sp, 0);
         }
 
@@ -92,7 +93,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
                                              2 * coglVDotProduct(ray,n))));
 
         /* Reflections */
-        matrix_t* ref = pixel_colour(ref_ray, x, lPos, rec_depth - 1, ignore);
+        matrix_t* ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore);
         if(ref) {
                 ref = coglMScale(ref, m->reflectance);
         } else {
@@ -121,7 +122,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
 }
 
 /* Returns the scaling factor `d`, if there is one.
-p * Arguments aren't checked for NULL, so don't fuck it up.
+ * Arguments aren't checked for NULL, so don't fuck it up.
  *
  * s   := The sphere the Ray might be hitting.
  * eye := Our eye position
@@ -151,7 +152,7 @@ GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
 }
 
 /* The final colour of a pixel pointed to by a Ray */
-matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, matrix_t* lPos, GLuint rec_depth, GLint ignore) {
+matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLuint rec_depth, GLint ignore) {
         GLfloat curr_d;
         GLfloat min_d = INFINITY;
         GLuint k;
@@ -160,10 +161,12 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, matrix_t* lPos, GLuint rec_
         matrix_t* n      = NULL;  // Normal from point `x`.
         matrix_t* x      = NULL;  // The Ray/Sphere intersection point.
 
+        check(env, "Null environment given.");
+        
         if(rec_depth == 0) {
                 return NULL;
         }
-
+        
         // For each Sphere
         for(k = 0; k < 3; k++) {
                 if(spheres[k]->id == ignore) {
@@ -184,15 +187,15 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, matrix_t* lPos, GLuint rec_
                 // Calculate colour.
                 x = coglMAddP(eye,coglMScale(ray,min_d));
                 n = coglVNormalize(coglMSubP(x, curr_s->center));
-                colour = material_colour(curr_s->mat,x,n,eye,lPos,
+                colour = material_colour(curr_s->mat,x,n,eye,env,
                                          rec_depth,curr_s->id);
 
                 // Free Vectory memory.
                 coglMDestroy(x);
                 coglMDestroy(n);
-
-                
         }
 
         return colour;
+ error:
+        return NULL;
 }
