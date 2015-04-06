@@ -110,31 +110,32 @@ void default_scene(Env* env, matrix_t* eye) {
                         for(k = 0; k < 5; k++) {
                                 if(colours[k]) {
                                         total_hits++;
-                                        hits++;
 
                                         r += colours[k]->m[0];
                                         g += colours[k]->m[1];
                                         b += colours[k]->m[2];
+                                } else {
+                                        r += env->bgc->m[0];
+                                        g += env->bgc->m[1];
+                                        b += env->bgc->m[2];
                                 }
                         }
+                        r = r / 5.0;
+                        g = g / 5.0;
+                        b = b / 5.0;
                         } else if(colours[0] != NULL) {
-                                hits++;
-                                
                                 r = colours[0]->m[0];
                                 g = colours[0]->m[1];
                                 b = colours[0]->m[2];
+                        } else {
+                                r = env->bgc->m[0];
+                                g = env->bgc->m[1];
+                                b = env->bgc->m[2];
                         }
 
-                        if(hits == 0) {
-                                // Background colour.
-                                buffer[j][i][0] = env->bgc->m[0];
-                                buffer[j][i][1] = env->bgc->m[1];
-                                buffer[j][i][2] = env->bgc->m[2];
-                        } else {
-                                buffer[j][i][0] = r / (GLfloat)hits;
-                                buffer[j][i][1] = g / (GLfloat)hits;
-                                buffer[j][i][2] = b / (GLfloat)hits;
-                        }
+                        buffer[j][i][0] = r;
+                        buffer[j][i][1] = g;
+                        buffer[j][i][2] = b;
 
                         coglMDestroy(ray);
                 }
