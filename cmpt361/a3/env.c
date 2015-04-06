@@ -6,7 +6,7 @@
 // --- //
 
 /* Set the rendering environment */
-Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b) {
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b, matrix_t* bgc, bool anti) {
         Env* e = malloc(sizeof(Env));
         check_mem(e);
 
@@ -17,6 +17,7 @@ Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l,
         e->shadows = s;
         e->reflections = refl;
         e->refraction = refr;
+        e->anti_aliasing = anti;
 
         /* Scene objects */
         e->spheres = ss;
@@ -27,6 +28,7 @@ Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l,
         e->rec_depth = rd;
         e->lPos = l;
         e->global_ambient = ga;
+        e->bgc = bgc;
 
         return e;
  error:

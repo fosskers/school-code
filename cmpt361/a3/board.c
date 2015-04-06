@@ -60,6 +60,8 @@ bool point_in_board(Board* b, matrix_t* point) {
 
         if(point->m[0] >= b->origin->m[0] &&
            point->m[0] <= b->origin->m[0] + 16 &&
+           point->m[1] >= b->origin->m[1] &&
+           point->m[1] <= b->origin->m[1] + 16 &&
            point->m[2] <= b->origin->m[2] &&
            point->m[2] >= b->origin->m[2] - 16) {
                 return true;

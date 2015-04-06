@@ -92,20 +92,42 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
                                              2 * coglVDotProduct(ray,n))));
 
         /* Reflections */
-        matrix_t* ref;
+        matrix_t* refl;
         if(env->reflections) {
-                ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore, ignoreBoard);
-                if(ref) {
-                        ref = coglMScale(ref, m->reflectance);
+                refl = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore,
+                                    ignoreBoard);
+                if(refl) {
+                        refl = coglMScale(refl, m->reflectance);
                 } else {
-                        ref = coglV3(0,0,0);
+                        // Background colour should bleed through.
+                        refl = coglMScale(coglMCopy(env->bgc), 0.2);
                 }
         } else {
-                ref = coglV3(0,0,0);
+                refl = coglV3(0,0,0);
         }
 
-        matrix_t* terms[4] = { g_am, am, di_sp, ref };
-        matrix_t* sum = coglMSumsP(terms, 4);
+        /* Refraction */
+        matrix_t* refr;
+        if(env->refraction) {
+                GLfloat c1 = -coglVDotProduct(ray,n);
+                GLfloat index = 1 / 2.0; //m->refr_index;
+                GLfloat c2 = sqrt(1 - index*index * (1 - c1*c1));
+                matrix_t* frac_ray = coglVNormalize(
+                                     coglMAdd(coglMScaleP(n,(index*c1-c2)),
+                                              coglMScaleP(ray,index)));
+
+                refr = pixel_colour(frac_ray, x, env, rec_depth - 1,
+                                    ignore, ignoreBoard);
+
+                if(!refr) {
+                        refr = coglV3(0,0,0);
+                }
+        } else {
+                refr = coglV3(0,0,0);
+        }
+
+        matrix_t* terms[5] = { g_am, am, di_sp, refl, refr };
+        matrix_t* sum = coglMSumsP(terms, 5);
 
         // Free memory
         coglMDestroy(l);
@@ -118,7 +140,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         coglMDestroy(di_sp);
         coglMDestroy(ray);
         coglMDestroy(ref_ray);
-        coglMDestroy(ref);
+        coglMDestroy(refl);
 
         return sum;
  error:

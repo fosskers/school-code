@@ -7,15 +7,16 @@
 // --- //
 
 typedef struct {
-        matrix_t* ambient;  // Ambient colour  :: vec3
-        matrix_t* diffuse;  // Diffuse colour  :: vec3
-        matrix_t* specular; // Specular colour :: vec3
+        matrix_t* ambient;   // Ambient colour  :: vec3
+        matrix_t* diffuse;   // Diffuse colour  :: vec3
+        matrix_t* specular;  // Specular colour :: vec3
         GLfloat shininess;
-        GLfloat reflectance;  // Of global ambient light.
+        GLfloat reflectance; // Of global ambient light.
+        GLfloat refr_index;  // Index of refraction.
 } Material;
 
 /* Given colour and reflectance data, create a new material */
-Material* newMaterial(matrix_t* a, matrix_t* d, matrix_t* s, GLfloat sh, GLfloat r);
+Material* newMaterial(matrix_t* a, matrix_t* d, matrix_t* s, GLfloat sh, GLfloat r, GLfloat i);
 
 /* Free a Material's memory */
 void destroyMaterial(Material* m);

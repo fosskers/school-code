@@ -54,9 +54,13 @@ void fill_buffer_randomly() {
 
 /* Ray Trace a few Spheres. Modifies given buffer */
 void default_scene(Env* env, matrix_t* eye) {
-        GLuint i,j;
+        GLuint i,j,k;
+        GLfloat i_len = 1/(GLfloat)W_WIDTH;
+        GLfloat j_len = 1/(GLfloat)W_HEIGHT;
+        GLfloat r,g,b;
+        GLuint hits;  // Total Ray hits for this pixel.
         GLuint total_hits = 0;
-        matrix_t* colour;
+        matrix_t* colours[5];
         matrix_t* ray;
        
         check(env, "Null environment given.");
@@ -66,27 +70,72 @@ void default_scene(Env* env, matrix_t* eye) {
         // For every pixel
         for(i = 0; i < W_WIDTH; i++) {
                 for (j = 0; j < W_HEIGHT; j++) {
+                        r = 0.0;
+                        g = 0.0;
+                        b = 0.0;
+                        hits = 0;
                         ray = coglVNormalize(
-                              coglV3(-2 + (4*i/(GLfloat)W_WIDTH) - eye->m[0],
-                                     -2 + (4*j/(GLfloat)W_HEIGHT) - eye->m[1],
+                              coglV3(-2 + 4*i*i_len - eye->m[0],
+                                     -2 + 4*j*j_len - eye->m[1],
                                      -eye->m[2]));
 
-                        colour = pixel_colour(ray,eye,env,env->rec_depth,-1,false);
+                        colours[0] = pixel_colour(ray,eye,env,
+                                                  env->rec_depth,-1,false);
+                        if(env->anti_aliasing) {
+                        colours[1] = pixel_colour(
+                                     coglVNormalize(
+                                     coglV3(-2 + 4*i*i_len + i_len-eye->m[0],
+                                            -2 + 4*j*j_len + j_len-eye->m[1],
+                                            -eye->m[2])),
+                                     eye,env,env->rec_depth,-1,false);
+                        colours[2] = pixel_colour(
+                                     coglVNormalize(
+                                     coglV3(-2 + 4*i*i_len + i_len-eye->m[0],
+                                            -2 + 4*j*j_len - j_len-eye->m[1],
+                                            -eye->m[2])),
+                                     eye,env,env->rec_depth,-1,false);
+                        colours[3] = pixel_colour(
+                                     coglVNormalize(
+                                     coglV3(-2 + 4*i*i_len - i_len-eye->m[0],
+                                            -2 + 4*j*j_len + j_len-eye->m[1],
+                                            -eye->m[2])),
+                                     eye,env,env->rec_depth,-1,false);
+                        colours[4] = pixel_colour(
+                                     coglVNormalize(
+                                     coglV3(-2 + 4*i*i_len - i_len-eye->m[0],
+                                            -2 + 4*j*j_len - j_len-eye->m[1],
+                                            -eye->m[2])),
+                                     eye,env,env->rec_depth,-1,false);
+                        
+                        for(k = 0; k < 5; k++) {
+                                if(colours[k]) {
+                                        total_hits++;
+                                        hits++;
 
-                        if(colour) {
-                                total_hits++;
-
-                                buffer[j][i][0] = colour->m[0];
-                                buffer[j][i][1] = colour->m[1];
-                                buffer[j][i][2] = colour->m[2];
-                        } else {
-                                // Background colour.
-                                buffer[j][i][0] = 0.5;
-                                buffer[j][i][1] = 0.05;
-                                buffer[j][i][2] = 0.8;
+                                        r += colours[k]->m[0];
+                                        g += colours[k]->m[1];
+                                        b += colours[k]->m[2];
+                                }
+                        }
+                        } else if(colours[0] != NULL) {
+                                hits++;
+                                
+                                r = colours[0]->m[0];
+                                g = colours[0]->m[1];
+                                b = colours[0]->m[2];
                         }
 
-                        coglMDestroy(colour);
+                        if(hits == 0) {
+                                // Background colour.
+                                buffer[j][i][0] = env->bgc->m[0];
+                                buffer[j][i][1] = env->bgc->m[1];
+                                buffer[j][i][2] = env->bgc->m[2];
+                        } else {
+                                buffer[j][i][0] = r / (GLfloat)hits;
+                                buffer[j][i][1] = g / (GLfloat)hits;
+                                buffer[j][i][2] = b / (GLfloat)hits;
+                        }
+
                         coglMDestroy(ray);
                 }
         }
@@ -169,7 +218,7 @@ int main(int argc, char** argv) {
 
         /* Register callbacks */
         glfwSetKeyCallback(w, key_callback);
-        glfwSetInputMode(w,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+        //glfwSetInputMode(w,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
         
         /* Depth Testing */
         glEnable(GL_DEPTH_TEST);
@@ -192,7 +241,9 @@ int main(int argc, char** argv) {
                           coglV3(0.2, 0.2, 0.2),   // Global ambient colour
                           NULL,                    // Spheres
                           0,                       // # of spheres
-                          NULL);                   // Chess Board  
+                          NULL,                    // Chess Board  
+                          coglV3(0.5,0.05,0.8),    // Background colour
+                          false);                  // Anti-aliasing?
 
         /* Set user-specified options */
         check(argc >= 3, "Not enough arguments given.");
@@ -206,6 +257,10 @@ int main(int argc, char** argv) {
                         env->reflections = true;
                 } else if(strcmp(argv[i],"+c") == 0) {
                         env->chess_board = true;
+                } else if(strcmp(argv[i],"+r") == 0) {
+                        env->refraction = true;
+                } else if(strcmp(argv[i],"+p") == 0) {
+                        env->anti_aliasing = true;
                 }
         }
 
@@ -247,7 +302,8 @@ int main(int argc, char** argv) {
                                           coglV3(0.1, 0.5, 0.8),
                                           coglV3(1.0, 1.0, 1.0),
                                           10,
-                                          0.4));
+                                          0.4,
+                                          1.5));
 
         /* Set default scene */
         matrix_t* eye = coglV3(0,0,2);
