@@ -6,11 +6,12 @@
 // --- //
 
 /* Set the rendering environment */
-Env* newEnv(GLuint rd, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga) {
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga) {
         Env* e = malloc(sizeof(Env));
         check_mem(e);
 
         e->rec_depth = rd;
+        e->render_default = d;
         e->chess_board = c;
         e->shadows = s;
         e->reflections = refl;

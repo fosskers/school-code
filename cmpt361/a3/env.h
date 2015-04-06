@@ -9,7 +9,8 @@
 // --- //
 
 typedef struct {
-        GLuint rec_depth;
+        GLint rec_depth;
+        bool render_default;
         bool chess_board;
         bool shadows;
         bool reflections;
@@ -19,7 +20,7 @@ typedef struct {
 } Env;
 
 /* Set the rendering environment */
-Env* newEnv(GLuint rd, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga);
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga);
 
 /* Free environment memory */
 void envDestroy(Env* env);

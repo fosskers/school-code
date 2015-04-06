@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "cog/dbg.h"
@@ -75,10 +76,6 @@ void default_scene(Env* env, matrix_t* eye) {
 
                         if(colour) {
                                 total_hits++;
-
-                                if(total_hits % 10000 == 0) {
-                                        debug("%d hits", total_hits);
-                                }
 
                                 buffer[j][i][0] = colour->m[0];
                                 buffer[j][i][1] = colour->m[1];
@@ -185,6 +182,30 @@ int main(int argc, char** argv) {
         /* Set initial randomness */
         srand((GLuint)(100000 * glfwGetTime()));
 
+        /* Set default Environment */
+        Env* env = newEnv(1,
+                          true,                    // Render default scene?
+                          false,                   // Check board
+                          false,                   // Show shadows?
+                          false,                   // Show reflections?
+                          false,                   // Show refractions?
+                          coglV3(-2.0, 5.0, 1.0),  // Light position
+                          coglV3(0.2, 0.2, 0.2));  // Global ambient colour
+
+        /* Set user-specified options */
+        check(argc >= 3, "Not enough arguments given.");
+        check(strcmp(argv[1],"-d") == 0, "-u not implemented yet.");
+        env->rec_depth = (GLint)atoi(argv[2]);
+        int i;
+        for(i = 3; i < argc; i++) {
+                if(strcmp(argv[i],"+s") == 0) {
+                        env->shadows = true;
+                }
+                if(strcmp(argv[i],"+l") == 0) {
+                        env->reflections = true;
+                }
+        }
+
         /* Set default spheres */
         spheres[0] = newSphere(0,
                                1.23,
@@ -213,14 +234,6 @@ int main(int argc, char** argv) {
         
         /* Set default scene */
         matrix_t* eye = coglV3(0,0,2);
-        Env* env = newEnv(2,
-                          false,                   // Check board
-                          true,                    // Show shadows?
-                          true,                    // Show reflections?
-                          false,                   // Show refractions?
-                          coglV3(-2.0, 5.0, 1.0),  // Light position
-                          coglV3(0.2, 0.2, 0.2));  // Global ambient colour
-
         default_scene(env,eye);
         envDestroy(env);
         

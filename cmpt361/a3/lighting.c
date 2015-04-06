@@ -16,7 +16,7 @@ GLfloat max_of(GLfloat f1, GLfloat f2) {
 }
 
 /* Is a particular point facing the light source? */
-bool is_facing_light(matrix_t* x, Env* env, GLuint rec_depth, GLint ignore) {
+bool is_facing_light(matrix_t* x, Env* env, GLint rec_depth, GLint ignore) {
         matrix_t* ray = coglVNormalize(coglMSubP(env->lPos, x));
         matrix_t* colour = pixel_colour(ray,x,env,rec_depth - 1, ignore);
         
@@ -36,7 +36,7 @@ bool is_facing_light(matrix_t* x, Env* env, GLuint rec_depth, GLint ignore) {
 }
 
 /* Finds colour for a Point, based on its material properties */
-matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, Env* env, GLuint rec_depth, GLint ignore) {
+matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore) {
         matrix_t* am = NULL;  // Ambient colour
         matrix_t* di = NULL;  // Diffuse colour
         matrix_t* sp = NULL;  // Specular colour
@@ -82,7 +82,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         matrix_t* di_sp = coglMScale(coglMAddP(di,sp), decay);
 
         /* Shadows */
-        if(!is_facing_light(x,env,rec_depth,ignore)) {
+        if(env->shadows && !is_facing_light(x,env,rec_depth,ignore)) {
                 coglMScale(di_sp, 0);
         }
 
@@ -93,9 +93,14 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
                                              2 * coglVDotProduct(ray,n))));
 
         /* Reflections */
-        matrix_t* ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore);
-        if(ref) {
-                ref = coglMScale(ref, m->reflectance);
+        matrix_t* ref;
+        if(env->reflections) {
+                ref = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore);
+                if(ref) {
+                        ref = coglMScale(ref, m->reflectance);
+                } else {
+                        ref = coglV3(0,0,0);
+                }
         } else {
                 ref = coglV3(0,0,0);
         }
@@ -152,7 +157,7 @@ GLfloat scaling_factor(Sphere* s, matrix_t* eye, matrix_t* ray) {
 }
 
 /* The final colour of a pixel pointed to by a Ray */
-matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLuint rec_depth, GLint ignore) {
+matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLint rec_depth, GLint ignore) {
         GLfloat curr_d;
         GLfloat min_d = INFINITY;
         GLuint k;
@@ -162,8 +167,8 @@ matrix_t* pixel_colour(matrix_t* ray, matrix_t* eye, Env* env, GLuint rec_depth,
         matrix_t* x      = NULL;  // The Ray/Sphere intersection point.
 
         check(env, "Null environment given.");
-        
-        if(rec_depth == 0) {
+
+        if(rec_depth < 0) {
                 return NULL;
         }
         
