@@ -200,8 +200,7 @@ int main(int argc, char** argv) {
         for(i = 3; i < argc; i++) {
                 if(strcmp(argv[i],"+s") == 0) {
                         env->shadows = true;
-                }
-                if(strcmp(argv[i],"+l") == 0) {
+                } else if(strcmp(argv[i],"+l") == 0) {
                         env->reflections = true;
                 }
         }
