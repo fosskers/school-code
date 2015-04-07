@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "cog/dbg.h"
 #include "lighting.h"
@@ -85,15 +86,41 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
                 coglMScale(di_sp, 0);
         }
 
-        matrix_t* ray = coglVNormalize(coglMSubP(x, eye));
-        matrix_t* ref_ray = coglVNormalize(
-                            coglMSubP(
-                            ray, coglMScaleP(n,
-                                             2 * coglVDotProduct(ray,n))));
-
         /* Reflections */
+        matrix_t* ray = coglVNormalize(coglMSubP(x, eye));
+        matrix_t* ref_ray = NULL;
         matrix_t* refl;
-        if(env->reflections) {
+        GLuint k;
+        GLfloat variance;
+        GLfloat r_r = 0.0;
+        GLfloat r_g = 0.0;
+        GLfloat r_b = 0.0;
+        if(env->reflections && env->diff_refl) {
+                for(k = 0; k < 5; k++) {
+                        variance = 2 + rand() / (GLfloat)RAND_MAX;
+                        ref_ray = coglVNormalize(
+                                  coglMSubP(ray,
+                                            coglMScaleP(n,variance * coglVDotProduct(ray,n))));
+                        refl = pixel_colour(ref_ray, x, env, rec_depth - 1,
+                                            ignore, ignoreBoard);
+                        if(refl) {
+                                refl = coglMScale(refl, m->reflectance);
+                        } else {
+                                refl = coglV3(0,0,0);
+                        }
+
+                        r_r += refl->m[0];
+                        r_g += refl->m[1];
+                        r_b += refl->m[2];
+
+                        coglMDestroy(refl);
+                }
+
+                refl = coglV3(r_r / 5.0, r_g / 5.0, r_b / 5.0);
+        } else if(env->reflections) {
+                ref_ray = coglVNormalize(
+                          coglMSubP(ray,
+                                    coglMScaleP(n,2*coglVDotProduct(ray,n))));
                 refl = pixel_colour(ref_ray, x, env, rec_depth - 1, ignore,
                                     ignoreBoard);
                 if(refl) {
@@ -110,7 +137,7 @@ matrix_t* material_colour(Material* m, matrix_t* x, matrix_t* n, matrix_t* eye, 
         matrix_t* refr;
         if(env->refraction) {
                 GLfloat c1 = -coglVDotProduct(ray,n);
-                GLfloat index = 1 / 2.0; //m->refr_index;
+                GLfloat index = 1 / m->refr_index;
                 GLfloat c2 = sqrt(1 - index*index * (1 - c1*c1));
                 matrix_t* frac_ray = coglVNormalize(
                                      coglMAdd(coglMScaleP(n,(index*c1-c2)),

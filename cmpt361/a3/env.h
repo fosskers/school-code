@@ -16,6 +16,7 @@ typedef struct {
         bool chess_board;
         bool shadows;
         bool reflections;
+        bool diff_refl;
         bool refraction;
         bool anti_aliasing;
 
@@ -32,7 +33,7 @@ typedef struct {
 } Env;
 
 /* Set the rendering environment */
-Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b, matrix_t* bgc, bool anti);
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b, matrix_t* bgc, bool anti, bool diff_refl);
 
 /* Free environment memory */
 void destroyEnv(Env* env);

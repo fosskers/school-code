@@ -6,7 +6,7 @@
 // --- //
 
 /* Set the rendering environment */
-Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b, matrix_t* bgc, bool anti) {
+Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l, matrix_t* ga, Sphere** ss, GLuint ns, Board* b, matrix_t* bgc, bool anti, bool diff_refl) {
         Env* e = malloc(sizeof(Env));
         check_mem(e);
 
@@ -16,6 +16,7 @@ Env* newEnv(GLint rd, bool d, bool c, bool s, bool refl, bool refr, matrix_t* l,
         e->chess_board = c;
         e->shadows = s;
         e->reflections = refl;
+        e->diff_refl = diff_refl;
         e->refraction = refr;
         e->anti_aliasing = anti;
 

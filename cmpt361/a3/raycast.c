@@ -244,11 +244,11 @@ int main(int argc, char** argv) {
                           0,                       // # of spheres
                           NULL,                    // Chess Board  
                           coglV3(0.5,0.05,0.8),    // Background colour
-                          false);                  // Anti-aliasing?
+                          false,                   // Anti-aliasing?
+                          false);                  // Diffuse reflections?
 
         /* Set user-specified options */
         check(argc >= 3, "Not enough arguments given.");
-        check(strcmp(argv[1],"-d") == 0, "-u not implemented yet.");
         env->rec_depth = (GLint)atoi(argv[2]);
         int i;
         for(i = 3; i < argc; i++) {
@@ -262,6 +262,8 @@ int main(int argc, char** argv) {
                         env->refraction = true;
                 } else if(strcmp(argv[i],"+p") == 0) {
                         env->anti_aliasing = true;
+                } else if(strcmp(argv[i],"+f") == 0) {
+                        env->diff_refl = true;
                 }
         }
 
@@ -297,14 +299,14 @@ int main(int argc, char** argv) {
         env->num_spheres = 3;
 
         /* Set Chess Board */
-        env->board = newBoard(coglV3(0,1,0),     // Normal
+        env->board = newBoard(coglVNormalize(coglV3(0,1,1)),     // Normal
                               coglV3(-8,-8,-8),  // Origin
                               newMaterial(coglV3(0.7, 0.7, 0.7),
                                           coglV3(0.1, 0.5, 0.8),
                                           coglV3(1.0, 1.0, 1.0),
                                           10,
                                           0.4,
-                                          1.5));
+                                          2.0));
 
         /* Set default scene */
         matrix_t* eye = coglV3(0,0,2);

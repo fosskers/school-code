@@ -19,7 +19,7 @@ Sphere* newSphere(GLint id, GLfloat r, matrix_t* c, matrix_t* a, matrix_t* d, ma
         newS->id = id;
         newS->radius = r;
         newS->center = c;
-        newS->mat = newMaterial(a,d,s,shininess,reflectance,1.5);
+        newS->mat = newMaterial(a,d,s,shininess,reflectance,2.0);
 
         return newS;
  error:
