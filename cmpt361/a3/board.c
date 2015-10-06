@@ -45,6 +45,8 @@ GLfloat scalar_to_board(Board* b, matrix_t* eye, matrix_t* ray) {
         GLfloat numer = coglVDotProduct(eye_to_origin,b->normal);
         GLfloat denom = coglVDotProduct(ray,b->normal);
         GLfloat result = numer / denom;
+
+        coglMDestroy(eye_to_origin);
         
         if(result > 0) {
                 return result;
