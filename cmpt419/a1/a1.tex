@@ -1,0 +1,99 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+% Default settings for code listings
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% FOR TREE DRAWING
+\pgfplotsset{compat=newest}
+\usetikzlibrary{shapes.geometric,arrows,fit,matrix,positioning}
+\tikzset
+{
+      treenode/.style = {circle, draw=black, align=center, minimum size=1cm}
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 419 Assignment 1}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\section{Probabilistic Modeling}
+
+\begin{enumerate}
+\item hi
+\item hi
+\item hi
+\item hi
+\end{enumerate}
+
+\section{Regularized Least-Squares Linear Regression}
+
+\section{Training vs. Test Error}
+\begin{enumerate}
+\item hi
+\item hi
+\item hi
+\end{enumerate}
+
+\section{Regression}
+\subsection{Getting Started}
+
+\begin{enumerate}
+\item Highest child mortality (U5MR) rate in 1990: Niger, with 313.7.
+\item Highest child mortality (U5MR) rate in 2011: Sierra Leone, with 185.3.
+\item The function detects \_ values in each row, and replaces
+  them with the median of all other valid entries from that row.
+\end{enumerate}
+
+\subsection{Polynomial Regression}
+
+\begin{enumerate}
+\item hi
+\item hi
+\end{enumerate}
+
+\subsection{Sigmoid Basis Functions}
+
+\begin{enumerate}
+  \item hi
+\end{enumerate}
+
+\subsection{Regularized Polynomial Regression}
+
+\begin{enumerate}
+  \item hi
+\end{enumerate}
+
+\end{document}
