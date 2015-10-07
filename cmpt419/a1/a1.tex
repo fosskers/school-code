@@ -62,9 +62,20 @@
 
 \section{Training vs. Test Error}
 \begin{enumerate}
-\item hi
-\item hi
-\item hi
+\item \fbox{Yes.} If there are 9 data points or fewer, the two polynomials
+will   both pass through the training points perfectly, and thus have zero  
+training error.\\   If there are 10 points or more, the degree-10 polynomial
+will have strictly   less training error than the degree-9.
+\item \fbox{No.} If there are 9 data points or fewer, the degree-10 polynomial
+  will curve more violently between each point, giving higher training
+  error.\\
+  If there are 10 points or more, the degree-10 polynomial will have
+  strictly less error.
+\item Always? \fbox{No.} One can imagine a scenario where a degree-1
+  polynomial (a line) were fit to a higher degree curve from which the data
+  truly comes. Training error would be high.
+  Testing data could then by coincidence fit the line perfectly, although
+  this is unlikely.
 \end{enumerate}
 
 \section{Regression}
