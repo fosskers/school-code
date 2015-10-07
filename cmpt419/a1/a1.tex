@@ -92,17 +92,26 @@ will have strictly   less training error than the degree-9.
 
 \begin{enumerate}
 \item \begin{center}
-  \includegraphics{reg2}
+  \includegraphics[scale=0.9]{reg2}
 \end{center}
   Notice that the training error increases with degree. We fix this
   by normalizing the data:
   \begin{center}
-      \includegraphics{reg1}
+      \includegraphics[scale=0.9]{reg1}
   \end{center}
   Now, as expected, our training error decreases as polynomial degree
   increases. Test error increases, which demonstrates the issue
   of over-fitting.
-\item hi
+\item \begin{center}
+  \includegraphics[scale=0.9]{reg3}
+\end{center}
+  Testing error is irregularly high for Feature 11. By plotting
+  the data with our fitted curves, we can gain intuition as to why:
+  \begin{center}
+    \includegraphics[scale=0.9]{plot11}
+    \includegraphics[scale=0.9]{plot12}
+    \includegraphics[scale=0.9]{plot13}
+  \end{center}
 \end{enumerate}
 
 \subsection{Sigmoid Basis Functions}
