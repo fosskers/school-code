@@ -92,12 +92,12 @@ will have strictly   less training error than the degree-9.
 
 \begin{enumerate}
 \item \begin{center}
-  \includegraphics[scale=0.9]{reg2}
+  \includegraphics[scale=0.9]{reg1}
 \end{center}
   Notice that the training error increases with degree. We fix this
   by normalizing the data:
   \begin{center}
-      \includegraphics[scale=0.9]{reg1}
+      \includegraphics[scale=0.9]{reg2}
   \end{center}
   Now, as expected, our training error decreases as polynomial degree
   increases. Test error increases, which demonstrates the issue
@@ -117,7 +117,11 @@ will have strictly   less training error than the degree-9.
 \subsection{Sigmoid Basis Functions}
 
 \begin{enumerate}
-  \item hi
+\item \begin{center}
+  \includegraphics[scale=0.9]{sig}
+\end{center}
+  The total training error is \fbox{28.41}, while the testing error is
+  \fbox{32.11}.
 \end{enumerate}
 
 \subsection{Regularized Polynomial Regression}

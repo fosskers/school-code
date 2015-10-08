@@ -10,7 +10,7 @@ t = Data(:,2);
 DEG = 3;
 
 for i=11:13
-    X = Data(:,i);
+    X = normalizeData(Data(:,i));
 
     ntrain = 100;
     X_train = X(1:ntrain);
@@ -33,6 +33,7 @@ for i=11:13
     plot(X_test,t_test,'bo');
     hold off;
     title(sprintf('Feature %d Data and Fitted Curve',i));
+    legend('Fitted Curve','Training','Testing','Location','northeast');
     % Make the fonts larger, good for reports.
     set(findall(gcf,'type','text'),'FontSize',20)
     set(findall(gcf,'type','axes'),'FontSize',20)
