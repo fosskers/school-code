@@ -52,13 +52,47 @@
 \section{Probabilistic Modeling}
 
 \begin{enumerate}
-\item hi
-\item hi
-\item hi
-\item hi
+\item Since there are multiple parties, but only one can win majority,
+  we model this with a \fbox{Multinomial Distribution}. Election states
+  are represented by some $x$, where $x_k \in \{0,1\}$ and $\sum_k x_k = 1$,
+  meaning only one party can hold majority at once.\\
+  Our $\mu_k$ values are the expections that a given party wins, such that
+  $\sum_k \mu_k = 1$.
+\item If each of the four parties had an equal chance of winning,
+  we would see: $\mu = (0.25, 0.25, 0.25, 0.25)$
+\item If the elections were rigged by the Conservatives, we would see:
+  $\mu = (0,0,1,0)$.
+\item \begin{align*}
+  p(\mu | D) \propto p(D | \mu) \cdot p(\mu)
+\end{align*}
+  Where $\mu = (0,0,0,1)$, and $D$ is the dataset of polls showing NDP
+  majority. Note $p(\mu) = 1$. $p(D | \mu)$ is the maximum likelihood
+  function of the data.
 \end{enumerate}
 
 \section{Regularized Least-Squares Linear Regression}
+Show that for $L_2$ least-squares regularization, $w = (\lambda I + \Phi^T\Phi)^{-1}\Phi^Tt$
+\begin{proof}
+  From a previous proof, we had that:
+  \begin{align*}
+    0^T = \mathbf{w}^T\Phi^T\Phi - \mathbf{t}^T\Phi
+  \end{align*}
+  Since regularized error takes the form:
+  \begin{align*}
+    E_D(\mathbf{w}) + \lambda E_W(\mathbf{w}) &=
+    \frac{1}{2}\sum^N_{n=1}\{t_n - \mathbf{w}^T\phi(\mathbf{x_n})\}^2 + \frac{\lambda}{2}\mathbf{w}^T\mathbf{w}
+  \end{align*}
+  We introduce a regularized $\mathbf{w}$ term into the equation above:
+  \begin{align*}
+    0^T &= \mathbf{w}^T\Phi^T\Phi - \mathbf{t}^T\Phi + \lambda\mathbf{w}^T\\
+    \mathbf{t}^T\Phi &= \lambda\mathbf{w}^T + \mathbf{w}^T\Phi^T\Phi\\
+    \Phi^T\mathbf{t} &= \lambda\mathbf{w} + \Phi^T\Phi\mathbf{w}\\
+    &= \lambda I\mathbf{w} + \Phi^T\Phi\mathbf{w}\\
+    &= [\lambda I + \Phi^T\Phi]\mathbf{w}\\
+    [\lambda I + \Phi^T\Phi]^{-1}\Phi^T\mathbf{t} &= \mathbf{w}
+  \end{align*}
+\end{proof}
+
 
 \section{Training vs. Test Error}
 \begin{enumerate}
@@ -109,15 +143,21 @@ will have strictly   less training error than the degree-9.
   the data with our fitted curves, we can gain intuition as to why:
   \begin{center}
     \includegraphics[scale=0.9]{plot11}
+  \end{center}
+  Below we provide plots for features 12 and 13 for comparison:
+  \begin{center}
     \includegraphics[scale=0.9]{plot12}
     \includegraphics[scale=0.9]{plot13}
   \end{center}
+  These two curves seem better behaved.
 \end{enumerate}
 
 \subsection{Sigmoid Basis Functions}
 
 \begin{enumerate}
-\item \begin{center}
+\item Use of a sigmoid basis function instead of a polynomial yields
+  a nicer curve fit:
+  \begin{center}
   \includegraphics[scale=0.9]{sig}
 \end{center}
   The total training error is \fbox{28.41}, while the testing error is
@@ -127,7 +167,12 @@ will have strictly   less training error than the degree-9.
 \subsection{Regularized Polynomial Regression}
 
 \begin{enumerate}
-  \item hi
+\item
+  \begin{center}
+  \includegraphics[scale=0.9]{lambda}
+\end{center}
+  It's clear from the plot that \fbox{0.1} is the most appropriate lambda
+  value. The error value for $\lambda = 0$ was \fbox{69.67}.
 \end{enumerate}
 
 \end{document}

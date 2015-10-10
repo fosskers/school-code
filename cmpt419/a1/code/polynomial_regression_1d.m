@@ -14,7 +14,7 @@ t = Data(:,2);
 tTr = t(1:100);
 tTe = t(101:end);
 X = Data(:,8:15);
-X = normalizeData(X);
+%X = normalizeData(X);
 XTr = X(1:100,:);
 XTe = X(101:end,:);
 
