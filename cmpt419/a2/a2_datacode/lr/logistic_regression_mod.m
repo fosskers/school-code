@@ -45,15 +45,15 @@ for e_inx=1:size(Eta,2)
   
         % Gradient of the error, using Eqn 4.91
         grad_e = sum(repmat(y - t,[1 size(X,2)]) .* X, 1);
-  
+
         % Update w, *subtracting* a step in the error derivative since
         % we're minimizing
         w_old = w;
         w = w - eta*grad_e';
   
         % Print some information.
-        %fprintf('iter %d, negative log-likelihood %.4f, w=', iter, e);
-        %fprintf('%.2f ',w);
+        fprintf('iter %d, negative log-likelihood %.4f, w=', iter, e);
+        fprintf('%.2f ',w);
         if wait_user
             % Wait for user input.
             input('Press enter');
@@ -70,8 +70,6 @@ for e_inx=1:size(Eta,2)
     end
 end
 
-size(e_all)
-
 % Plot error over iterations
 figure(3)
 set(gca,'FontSize',15);
@@ -79,4 +77,4 @@ plot(e_all');
 xlabel('Iteration');
 ylabel('neg. log likelihood')
 title('Minimization using gradient descent');
-legend('mu=0.005','mu=0.003','mu=0.001','mu=0.0005','mu=0.0001');
+legend('eta=0.005','eta=0.003','eta=0.001','eta=0.0005','eta=0.0001');

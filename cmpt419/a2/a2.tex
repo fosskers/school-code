@@ -109,14 +109,50 @@ the plane for Class 2 can sit parallel to the feature space. Specifically:
   \includegraphics[scale=0.75]{3-1c}
 \end{center}
 
-  Why do these oscillate?
+  To choose a good decision boundary, we are performing regression on a line.
+  We minimize our error function (a bowl-like shape in error space) via
+  Gradient Descent. The step size is a small enough value that it finds the
+  bowl quickly without overshooting it, but then proceeds to bounce between
+  the sides of the bowl as it iterates toward the minimum. This bouncing
+  must mean the algorithm thinks it is taking a more efficient step
+  by moving across the valley, instead of moving straight down.\\
+
+  These zig-zag steps in the error yield near-mirrored $\mathbf{w}$ values,
+  which gives us an oscillating decision boundary, and thus an
+  oscillating intersept/slope curve.
   
 \item Plot
   \begin{center}
     \includegraphics[scale=0.75]{3-2}
   \end{center}
-\item hi
-\item hi
+
+  $\mu = 0.003$ remains the optimal value. A larger value seems to
+  converge slower.\\
+  Notice that the three smallest values don't cause the descent to oscillate.
+  In this way, they can be thought to be ``better'' as they take a more
+  direct path to the minimum.
+  They also converge slower, but that is to be expected.
+
+\item Stochastic Gradient Descent
+  \begin{center}
+    \includegraphics[scale=0.75]{3-3}
+  \end{center}
+
+  \emph{Note:} The sudden drop to 0 for three of the $\eta$ values
+  represents convergence. No data was recorded after that point, so
+  Matlab likely padded the vector's remaining columns with 0's.\\
+  
+  Both this plot and the one from the question above appear to be
+  converging on the same likelihood value. The two only share two equal
+  step sizes, 0.001 and 0.0001, comparing those, we see appears SGD to be
+  slower than normal gradient descent. However, with higher step sizes,
+  SGD actually converges, where GD never did.
+
+\item IRLS
+  \begin{center}
+  \includegraphics[scale=0.75]{3-4a}
+  \includegraphics[scale=0.75]{3-4b}
+\end{center}
 \end{enumerate}
 
 \section{Kernelized Perceptron}
