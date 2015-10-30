@@ -96,8 +96,30 @@ the plane for Class 2 can sit parallel to the feature space. Specifically:
 \section{Kernels}
 
 \begin{enumerate}
-\item hi
-\item hi
+\item How do the coefficients affect the model for:
+  \begin{itemize}
+  \item \textbf{unregularized regression?} \fbox{They wouldn't},
+    as the weights would
+    compensate and be lower to minimize the squared error.
+  \item \textbf{regularized regression?} \fbox{They would}. If preceded
+    by a coefficient like $\sqrt{2} > 1$, the weight for that
+    term will be smaller to compensate (as above). Since it is less,
+    the $\lambda$ won't affect it as strongly, resulting in a fitted curve
+    that isn't as accurate as the true source curve.
+  \end{itemize}
+
+\item Combining Kernels. As is typical for proofs like these,
+  we expand terms and simplify to show that this corresponds to a dot product.
+  \begin{proof}
+    \begin{align*}
+      k_c(x,z) &= \alpha k_a(x,z) + \beta k_b(x,z)\\
+      &= \alpha(\phi_1^a(x),\ldots,\phi_N^a(x))(\phi_1^a(z),\ldots,\phi_M^a(z))^T + \beta(\phi_1^b(x),\ldots,\phi_N^b(x))(\phi_1^b(z),\ldots,\phi_M^b(z))^T\\
+      &= \alpha[\phi_1^a(x)^T\phi_1^a(z) + \cdots + \phi_N^a(x)^T\phi_N^a(z)] + \beta[\phi_1^b(x)^T\phi_1^b(z) + \cdots + \phi_M^b(x)^T\phi_M^b(z)]\\
+      &= \alpha\phi_1^a(x)^T\phi_1^a(z) + \cdots + \alpha\phi_N^a(x)^T\phi_N^a(z) + \beta\phi_1^b(x)^T\phi_1^b(z) + \cdots + \beta\phi_M^b(x)^T\phi_M^b(z)\\
+      &= (\alpha\phi_1^a(x),\ldots,\alpha\phi_N^a(x),\beta\phi_1^b(x),\ldots,\beta\phi_M^b(x))(\phi_1^a(z),\ldots,\phi_N^a(z),\phi_1^b(z),\ldots,\phi_M^b(z))^T\\
+      &\text{which is clearly the dot product on mappings of the two input vectors}
+    \end{align*}
+  \end{proof}
 \end{enumerate}
 
 \section{Logistic Regression}
@@ -126,7 +148,7 @@ the plane for Class 2 can sit parallel to the feature space. Specifically:
     \includegraphics[scale=0.75]{3-2}
   \end{center}
 
-  $\mu = 0.003$ remains the optimal value. A larger value seems to
+  $\eta = 0.003$ remains the optimal value. A larger value seems to
   converge slower.\\
   Notice that the three smallest values don't cause the descent to oscillate.
   In this way, they can be thought to be ``better'' as they take a more
@@ -140,11 +162,11 @@ the plane for Class 2 can sit parallel to the feature space. Specifically:
 
   \emph{Note:} The sudden drop to 0 for three of the $\eta$ values
   represents convergence. No data was recorded after that point, so
-  Matlab likely padded the vector's remaining columns with 0's.\\
+  Matlab likely padded the vectors' remaining columns with 0's.\\
   
   Both this plot and the one from the question above appear to be
   converging on the same likelihood value. The two only share two equal
-  step sizes, 0.001 and 0.0001, comparing those, we see appears SGD to be
+  step sizes, 0.001 and 0.0001. Comparing those, it appears SGD to be
   slower than normal gradient descent. However, with higher step sizes,
   SGD actually converges, where GD never did.
 
@@ -156,7 +178,26 @@ the plane for Class 2 can sit parallel to the feature space. Specifically:
 \end{enumerate}
 
 \section{Kernelized Perceptron}
+This was an interesting problem that had me dedicate many hours to it.\\
+I tested with two kernels, the supplied \textbf{Gaussian} kernel and a
+\textbf{Hyperbolic Tangent} (Sigmoid) kernel, defined by:
 
+\begin{align*}
+  k(x,y) = \tanh(\alpha x^Ty + c)
+\end{align*}
 
+where I set $\alpha$ to be $\frac{1}{N}$, where $N$ is the size of the
+data set (apparently this is typical). $c$ is the slope hyperparameter,
+but no matter what I set it to, I had validation error rates consistantly
+around 25 to 30 percent.\\
+
+The Gaussian kernel, on the other hand, given $\sigma = 15$ instead
+of the default 5 gave fairly good results:
+
+\begin{center}
+  \includegraphics{gauss-15}
+\end{center}
+
+This is what I used to produce my final Fn for submission.
 
 \end{document}
