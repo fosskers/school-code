@@ -1,0 +1,86 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+% Default settings for code listings
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% FOR TREE DRAWING
+\pgfplotsset{compat=newest}
+\usetikzlibrary{shapes.geometric,arrows,fit,matrix,positioning}
+\tikzset
+{
+      treenode/.style = {circle, draw=black, align=center, minimum size=1cm}
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 419 Assignment 3}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\section{Graphical Models}
+
+\begin{itemize}
+\item Bayes Net
+  \begin{center}
+    \includegraphics[scale=0.75]{bayesnet}
+  \end{center}
+
+\item Factored Representation
+  \begin{align*}
+    p(A,L,G,E,T) &= p(L)p(G)p(E|G)p(T|E,G)p(A|L,T)
+  \end{align*}
+
+\item Conditional Distributions
+  \begin{align*}
+    p(E|G) &= ?\\
+    p(T|E,G) &= \left\{
+    \begin{array}{l l}
+      N(T; \alpha_l e + b_l, \sigma^2) & \quad \text{if $G = l$}\\
+      N(T; \alpha_d e + b_d, \sigma^2) & \quad \text{if $G = d$}\\
+    \end{array} \right.
+  \end{align*}
+  
+\item Hi
+\end{itemize}
+
+\section{Neural Networks}
+
+\begin{itemize}
+\item Hi
+\item Hi
+\item Hi
+\end{itemize}
+
+\end{document}
