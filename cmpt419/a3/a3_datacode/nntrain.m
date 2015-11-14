@@ -77,19 +77,18 @@ for epoch=1:MAX_EPOCH
         % is all we have here.
         %
         % (y_k - t_k) * z_j, where j is the previous layer before k.
-        % dW2 = zeros(H+1,K);
+        dW2 = zeros(H+1,K);
         the_t = zeros(K,1);
         the_t(ttrain(x_i),1) = 1;  % 1-hot encoding.
         z = Z{1};
         z = [z 1];
-        dW2 = [];
         dks = [];
 
         for k=1:size(Z{2},2)
             y_k = Z{2}(1,k);
             t_k = the_t(k,1);
             dks(k,1) = y_k - t_k;
-            dW2 = [dW2 (dks(k,1) * z)'];  % append gradients for this `k`.
+            dW2(:,k) = (dks(k,1) * z)';  % append gradients for this `k`.
         end
 
         % Hidden layer derivative.
