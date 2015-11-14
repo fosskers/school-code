@@ -3,11 +3,12 @@ function [A,Z] = feedforward(X,NN)
 % X is N-by-M
 % NN is struct array containing layers of network
 % Returns:
-%  A, activations of nodes in network (cell array of activations at each layer)
-%  Z, outputs at nodes (non-linear function applied to activations)
+% A, activations of nodes in network (cell array of activations at each layer)
+% Z, outputs at nodes (non-linear function applied to activations)
 
 % Initialize outputs of previous layer as the inputs, plus bias inputs.
 Zprev = [X ones(size(X,1),1)];
+
 for l_i=1:length(NN)
   if size(Zprev,2)~=size(NN(l_i).weights,1)
     error('Mismatch in weight matrix size');
