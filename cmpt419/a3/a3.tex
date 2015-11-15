@@ -97,7 +97,20 @@
   implying that the cost of tuition matters more if the parents
   don't have a university education.
   
-\item Hi
+\item \textbf{Learning} $p(A|L,T)$\\
+  Given that $p(A|L,T)$ is sigmoidal, we can maximize the likehood by
+  minimizing the error, given by:
+
+  \begin{align*}
+    E(w) &= -\sum_N[a_n\ln y_n + (1 - a_n)\ln(1-y_n)]
+  \end{align*}
+
+  Where $y_n$ is the output of the sigmoid, and $a_n$ is the parameter
+  for $A$ as found in the input data. Since we actually have two sigmoids
+  based on the value of $L$, we need to consider $l_n$ here as well.
+  Therefore, we only need $a_n$, $t_n$, and $l_n$ to learn the parameters
+  for $p(A|L,T)$.
+
 \end{enumerate}
 
 \section{Neural Networks}
