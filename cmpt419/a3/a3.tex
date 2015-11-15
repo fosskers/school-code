@@ -51,7 +51,7 @@
 
 \section{Graphical Models}
 
-\begin{itemize}
+\begin{enumerate}
 \item Bayes Net
   \begin{center}
     \includegraphics[scale=0.75]{bayesnet}
@@ -64,23 +64,74 @@
 
 \item Conditional Distributions
   \begin{align*}
-    p(E|G) &= ?\\
+    p(E|G) &= \frac{p(G|E)p(E)}{p(G)} \quad \text{Bayes Theorem}\\
+    \text{Let } p(G|E) &= \frac{1}{1 + e^{(0.5 - e)}}\\
+    \therefore p(E|G) &= \frac{p(E)}{p(G)(1 + e^{(0.5 - e)})}
+  \end{align*}
+
+  Where $e$ is input to the function, corresponding to $E$. The $s$ in
+  the logistic sigmoid here is assumed to be 1. $\frac{1}{2}$ is sufficient
+  as a y-intercept value.
+  
+  \begin{align*}
     p(T|E,G) &= \left\{
     \begin{array}{l l}
-      N(T; \alpha_l e + b_l, \sigma^2) & \quad \text{if $G = l$}\\
-      N(T; \alpha_d e + b_d, \sigma^2) & \quad \text{if $G = d$}\\
+      N(T; 10e + 100, \sigma^2) & \quad \text{if $G = l$}\\
+      N(T; 100e + 10, \sigma^2) & \quad \text{if $G = d$}\\
     \end{array} \right.
   \end{align*}
+
+  In terms of overall cost, tuition would be lower under an NDP government.
+  The higher $\alpha$ value for $G = d$ implies that given NDP,
+  the economy is more likely to affect tuition.
+  
+  \begin{align*}
+    p(A|L,T) &= \left\{
+    \begin{array}{l l}
+      \frac{1}{1 + e^{(0.5 - t)/100}} & \quad \text{if $L = u$}\\
+      \frac{1}{1 + e^{(0.5 - t)/10}} & \quad \text{if $L = o$}\\
+    \end{array} \right.
+  \end{align*}
+
+  That is, the slope of the sigmoid for $L = o$ should be steeper,
+  implying that the cost of tuition matters more if the parents
+  don't have a university education.
   
 \item Hi
-\end{itemize}
+\end{enumerate}
 
 \section{Neural Networks}
 
-\begin{itemize}
-\item Hi
-\item Hi
-\item Hi
-\end{itemize}
+\begin{enumerate}
+\item Error plot
+  \begin{center}
+    \includegraphics[scale=0.8]{nnet}
+  \end{center}
+
+\item \textbf{Initial Weights}\\
+  We are generating the initial hidden layer weights via \emph{rand}
+  (a uniform distribution) instead of \emph{randn} (a Gaussian). This
+  implies that any weight is equally likely for any node. Note that
+  \emph{rand} never generates values less than 0, or greater than 1,
+  whereas \emph{randn} does both of those.
+
+\item With \emph{rand}, we see no improvement
+  to the weights at each epoch. If we check the \emph{dW*} values through
+  the debugger, we see the gradients hovering around
+  0, essentially halting descent.\\
+  Interestingly, if we initialize the NN(1) weights to all 0s, we see
+  comparable final test error. Initialized uniformly to any other number
+  sees descent immediately halt (tested with 0.5, 1, -1, 100). Any non-zero
+  uniform weight will scale the input uniformly, and result in the same
+  $a$ value for each node in the hidden layer, thus yielding the same $z$
+  as well. Equal $z$ values means \emph{softmax} yields 0.1 for each of
+  the output nodes. It's my suspicion that this confuses gradient decent,
+  thinking it doesn't need to improve.\\
+  A mix of positive and negative values for the initial weights (as given
+  by \emph{randn}) seems to be ideal. Such a mix would bring the $a$ values
+  closer to 0, giving better values from the sigmoid. For either all-positive
+  (like from \emph{rand}) or all-negative values, the $a$ values are far
+  from 0, once again yielding near-equal $z$ from the hidden layer.
+\end{enumerate}
 
 \end{document}

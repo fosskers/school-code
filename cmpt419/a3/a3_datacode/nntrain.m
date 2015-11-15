@@ -21,7 +21,7 @@ t = t+1; % Encode as 1-10, digit+1.
 TRAIN_INDS=1:500;
 % COLIN: Is there a mistake here?
 TEST_INDS=setdiff(1:size(Xt,1),TRAIN_INDS);
-TEST_INDS=501:1000;  % Why are these here twice?
+TEST_INDS=501:1000;
 
 % Training data
 Xtrain=Xt(TRAIN_INDS,:);
@@ -45,9 +45,12 @@ clear NN;
 NN = struct('weights',[],'type','');
 
 NN(1).weights = randn(D+1,H);
+%NN(1).weights = rand(D+1,H);
+%NN(1).weights(1:D+1,1:H) = 0.5;
 NN(1).type = 'sigmoid';
 
 NN(2).weights = 0.1*randn(H+1,K);
+%NN(2).weights = zeros(H+1,K);
 NN(2).type = 'softmax';
 
 % Stochastic gradient descent with back-propagation.
