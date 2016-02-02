@@ -11,7 +11,7 @@ FI = imgaussfilt(GR);
 % --- Multithresh Method --- %
 
 % multithresh :: Image -> Int -> Vector Int
-%n   Yields a vector of threshold level, and a `metric` of the
+%   Yields a vector of threshold level, and a `metric` of the
 %   success of the algorithm.
 [levels,metric] = multithresh(FI,2);  % Threshold of 2 seems to be best.
 
@@ -42,14 +42,29 @@ figure
 imshow(BW)
 
 % Skeletonize - Reduce the pencil shapes to thin lines
+% bwmorph :: Image -> String -> Int -> Image
+%   Perform some operating, indicated by the given String. The Int
+%   argument is the number of times to repeat the operation.
 BW = bwmorph(BW,'skel',Inf);
 
-% Dilate to get better results on Hough
+% Dilate to thicken the lines and get better results on Hough
 BW = bwmorph(BW,'dilate');
 
 % Hough Transform - 4 peaks seems to be an ideal number
+% hough :: Image -> (Matrix Float, Vector Float, Vector Float)
+%   Perform a Hough Transformation.
 [H,thetas,ros] = hough(BW);
+
+% houghpeaks :: Matrix Float -> Int -> Matrix Int
+%   Given the `H` matrix from `hough`, and a maximum bound for the
+%   number of peaks, produce a matrix of coordinates of said peaks
+%   in `H`.
 peaks = houghpeaks(H,4);
+
+% houghlines :: Image -> V Float -> V Float -> M Int -> [Line]
+%   Find the line segments formed from the theta values, ro values,
+%   and peaks found by the other hough functions. This produces a
+%   list of the longest straight lines it can find in the image.
 lines = houghlines(BW,thetas,ros,peaks);
 
 % Overlay calculated lines over grayscale image
