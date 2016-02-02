@@ -1,5 +1,5 @@
-% Detect Pencil Edges
-% Colin Woodbury - 301238755
+% HB Inc. High-budget Pencil Detection Software
+% Colin Woodbury - 301238755 <cwoodbur@sfu.ca>
 
 % Never trust Matlab.
 clear;
@@ -13,6 +13,7 @@ images = {
     'Three-on-Carpet.JPG'
 };
 
+% Find the pencils in each image.
 for i=1:size(images)
     detect(images{i});
 end

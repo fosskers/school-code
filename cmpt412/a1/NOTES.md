@@ -6,6 +6,11 @@ Picking up Pencils - Notes
 `multithresh` is the way to go (I actually discovered this last week)
 for removing noise.
 
+Praise be to `multithresh`! I have everything working now. My `detect`
+function can find most pencils in an image, and will produce a single line
+representing said pencil. The carpet image murders my technique, however,
+and it also can't tell which pencils are above or below which.
+
 2016 January 25
 ---------------
 - *Image Analysis -> Edge Detection*
