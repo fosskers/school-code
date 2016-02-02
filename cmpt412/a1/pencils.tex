@@ -1,0 +1,216 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 412 - Assignment 1 : Pencil Detection}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\section{Journal}
+\subsection{2016 January 18}
+Random thoughts, having seen the test images:
+\begin{itemize}
+\item Could the presence of shadows be used to discover "on-top" pencils?
+\item I need to think of a way to represent a pencil's location. The centre
+  isn't good enough, given that a pencil isn't a circle like a penny.
+\item Pencils don't have to be their usual off-yellow. They can also be
+  multicoloured.
+\item Pencils don't always have the same length.
+\item Background could be noisy. Smooth out the image?
+\item Probably no point in trying to detect the eraser, or the metal holding it.
+\end{itemize}
+
+\subsection{2016 January 21}
+I explored the \emph{Image Enhancement} kit. After doing some tests with the
+famous \emph{Lena} image, \emph{imgaussfilt} seems to be ideal for smoothing.
+Experimentally, $\sigma = 1$ seems to give smoothing that is pleasant to the
+eyes, but we'll see whether that or the default of 0.5 is better for actual
+edge detection.\\
+
+(Later) I've settled on the default of 0.5.
+
+\subsection{2016 January 25}
+I've poked more around the toolkit, and found some nice things to try:
+\begin{itemize}
+  \item imcontour: Draws a coloured, fairly accurate contouring of the pencil
+  \item imhist: Gives a bell-curve of colour values that appear in the image
+  \item bwperim: Draws a black and white perimeter around objects in an image.
+  \item edge(I,'log',n): Requires large amounts of parameter tweaking to
+    perform even marginally well.
+
+\end{itemize}
+
+\subsection{2016 January 2x}
+\emph{multithresh} (which I found quite by accident) is the way to go for
+removing noise. I should be able to use it to simplify the image, then do
+edge detection on that to find the pencils.
+
+\subsection{2016 February 1}
+Praise be to \emph{multithresh}! I have everything working now, and
+the best part is that I'm not doing any edge detection. My \emph{detect}
+function can find most pencils in an image, and will produce a single line
+representing said pencil. The carpet image murders my technique, however,
+and it also can't tell which pencils are above or below which.
+
+\section{Pencil Detection}
+
+\subsection{Methods}
+Our solution has three steps:
+\begin{enumerate}
+\item Noise reduction
+\item Shape detection
+\item Line discovery
+\end{enumerate}
+
+Note that edge detection is but one way of arriving at the ``detected shapes''
+we're looking for. Indeed, in my final solution I employ no direct edge
+detection.
+
+\subsubsection{Noise Reduction - Gaussian Filtering}
+Image artifacts (noise) make shape detection more difficult. After some
+experimention, I settled on the function \emph{imgaussfilter} to help
+smooth the image beforehand. While we have a choice of $\sigma$ to affect
+the Gaussian, no choice different from the default showed any performance
+improvement.
+
+\subsubsection{Shape Detection - Edge Detection}
+A quick preruse of the Matlab documentation shows a number of different
+algorithms available for edge detection. None that I tried gave me
+convincing results, and working with those results would have been
+more of a headache than \emph{multithresh} turned out to be.
+
+\subsubsection{Shape Detection - Multithresh}
+ \emph{multithresh} is the crux of the pencil detection technique used
+ here. Instead of doing any actual edge detection, we opt to
+ separate the image into different intensity
+ regions. Experimentally, a value of 2 passed to the function
+ performs best. 2 yields threshold levels that when given to
+ \emph{imquantize} as is shown below, divides the image into three
+ partitions by relative intensity. Further below, I interpret
+ those partitions, and colour black only the areas which weren't
+ already white. This yields a binary image where only the shapes
+ of the pencils are visible, effectively avoiding the need for
+ finicky edge detection altogether.\\
+
+With this three-step technique, the algorithm produces images like
+the following from a gray-scaled image:
+
+\begin{center}
+  \includegraphics[scale=0.4]{two}
+  \includegraphics[scale=0.4]{crossed}    
+\end{center}
+
+\begin{lstlisting}
+  [levels,metric] = multithresh(FI,2);  % Threshold of 2 seems to be best.
+  seg_I = imquantize(FI, levels);
+
+  % Sanitize `seg_I` to only show white where pencils were.
+  BW = [];
+  for i=1:size(seg_I,1)
+    for j=1:size(seg_I,2)
+      if seg_I(i,j) == 3
+        BW(i,j) = 1.0;
+      else
+        BW(i,j) = 0;
+      end
+    end
+  end
+\end{lstlisting}
+
+\subsubsection{Line Discovery - Hough Transform}
+The Hough Transform allows us to find long line segments in our
+binary image. Before doing that, however, I found it advantageous to first
+shrink the white regions found above with the \emph{skel} operation of
+\emph{bwmorph}, and then fatten it again just slightly with \emph{dilate}.
+
+\begin{lstlisting}
+  BW = bwmorph(BW,'skel',Inf);
+  BW = bwmorph(BW,'dilate');
+\end{lstlisting}
+
+This tends to produces nice lines that run straight down the center of
+the pencil in the final image.\\
+
+\begin{center}
+  \includegraphics[scale=0.5]{crossed-thin}  
+\end{center}
+
+Next, we perform the actual Hough Transformation:
+
+\begin{lstlisting}
+  [H,thetas,ros] = hough(BW);
+  peaks = houghpeaks(H,4);
+  lines = houghlines(BW,thetas,ros,peaks);
+\end{lstlisting}
+
+And then overlay the found lines onto the original image, grayscaled.
+
+\begin{center}
+  \includegraphics[scale=0.5]{crossed-lines}
+\end{center}
+
+Notice that despite the noticable gap in the lines caused by a shadow in the
+previous image, our Hough line bridges that gap and produces a full line.
+
+\subsection{Limitations}
+\textbf{Background Colour} This techniques requires a background darker than
+the pencils themselves, or the pencils may be lost during the
+\emph{multithresh} stage, as can be seen in the picture with six pencils:
+
+\begin{center}
+  \includegraphics[scale=0.5]{six-bw}
+  \includegraphics[scale=0.5]{six-lines}
+\end{center}
+
+Note, this constraint should be possible to satisfy on an assembly line!\\
+
+\textbf{Background Texture} The algorithm produces the following
+on the infamous ``carpet'' image:
+
+\begin{center}
+  \includegraphics[scale=0.5]{carpet-thresh}
+  \includegraphics[scale=0.5]{carpet-lines}
+\end{center}
+
+\textbf{Pencil Quantity} There is very likely an upper bound to the number
+of pencils it can detect at a time. If we tell it to look for more at once,
+the algorithm will often incorrectly find multiple lines per pencil.\\
+
+\textbf{Occlusion} While the algorithm can accurately determine the location
+of pencils, it cannot tell which one is above which.
+
+\end{document}
