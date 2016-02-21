@@ -4,47 +4,50 @@ import           Codec.Picture.Jpg
 import           Codec.Picture.Types
 import           Control.Monad ((>=>))
 import qualified Data.ByteString as B
-import           Data.Matrix
+import           Data.Matrix as M
 import           Data.Vector as V
 import qualified Data.Vector.Storable as VS
+import           Data.Word (Word8)
 
 ---
+
+-- | A Jpeg has a height and width, and three colour channels from the
+-- YCbCr colour space.
+data Jpeg = Jpeg { jWidth :: !Int
+                 , jHeight :: !Int
+                 , y' :: Channel Word8
+                 , cb :: Channel Word8
+                 , cr :: Channel Word8 } deriving (Eq,Show)
 
 -- | A channel is a matrix of pixel values.
 type Channel a = Matrix a
 
--- | Intermediate step in converting between `JuicyPixels` type
--- and the `Matrix` we'll use for compression.
-data Intermediate = I Int Int (Vector Int, Vector Int, Vector Int)
-
+-- | A contiguous Vector of pixel values for Channel, with no associated
+-- width or height values.
+type ChanVec = Vector Word8
 
 -- | Will always yield an RGB `Image` when successful.
 rgb :: DynamicImage -> Either String (Image PixelRGB8)
 rgb (ImageYCbCr8 i) = Right $ convertImage i
 rgb _ = Left "DynamicImage was not YCbCr."
 
--- | Keep every nth element of a given Vector.
-every :: Int -> Vector a -> Vector a
-every n v = go 1 v
-  where go m u | V.null u = V.empty
-               | m == n = V.head u `V.cons` go 1 (V.tail u)
-               | otherwise = go (m+1) $ V.tail u
+-- | Convert a Vector of contiguous pixel values into their triples.
+-- Vector size *must* be a multiple of 3!
+trips :: Vector a -> Vector (a,a,a)
+trips v | V.null v = V.empty
+        | otherwise = (v V.! 0, v V.! 1, v V.! 2) `V.cons` trips (V.drop 3 v)
 
--- TODO: From here! `every` isn't right.
-toInter :: Image PixelRGB8 -> Intermediate
-toInter (Image w h v) = I w h (v1, v2, v3)
-  where v1 = undefined
-        v2 = undefined
-        v3 = undefined
+-- TODO: Colour space conversion!
+-- | Create a `Jpeg`, with its values in the YCbCr colour space from a
+-- JuicyPixels RGB `Image`.
+jpeg :: Image PixelRGB8 -> Jpeg
+jpeg (Image w h v) = Jpeg w' h' (m c1) (m c2) (m c3)
+  where w' = n8 w
+        h' = n8 h
+        n8 n = n - (n `mod` 8)
+        m u = M.subMatrix (0,0) (w'-1,h'-1) $ M.fromVector (w,h) u
+        (c1,c2,c3) = V.unzip3 . trips $ VS.convert v
 
-image :: IO (Either String (Image PixelRGB8))
-image = (decodeJpeg >=> rgb) <$> B.readFile "kitten.jpg"
-
-main :: IO ()
-main = do
-  i <- image
-  case i of
-    Left err -> putStrLn err
-    Right img -> print . V.length . VS.convert $ imageData img
-
-  
+-- | Read an image file into a JuicyPixels `Image` type.
+image :: FilePath -> IO (Either String (Image PixelRGB8))
+image fp = (decodeJpeg >=> rgb) <$> B.readFile fp
