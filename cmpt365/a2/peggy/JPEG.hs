@@ -15,6 +15,15 @@ module JPEG
        , toR
        , toG
        , toB
+         -- * Compression
+       , downsample
+       , blocks
+       , dct
+       , dct'
+         -- * Decompression
+       , idct
+       , idct'
+       , unblocks
        ) where
 
 import           Codec.Picture.Jpg
@@ -96,19 +105,19 @@ toCr r g b = Chan $ M.zipWith3 (\x y z -> round $ 128 + x - y - z) r' g' b'
 -- | Recover the R Channel.
 toR :: Chan Y Int -> Chan Cr Int -> Chan R Int
 toR (_mat -> y) (_mat -> cr) = Chan $ M.zipWith (\a b -> a + b) y cr'
-  where cr' = M.map (\(fromIntegral -> n) -> round $ 1.403 * (n - 128)) cr
+  where cr' = M.map (\n -> round $ 1.403 * (fromIntegral n - 128)) cr
 
 -- | Recover the G Channel.
 toG :: Chan Y Int -> Chan Cb Int -> Chan Cr Int -> Chan G Int
 toG (_mat -> y) (_mat -> cb) (_mat -> cr) =
   Chan $ M.zipWith3 (\a b c -> round $ fromIntegral a - b - c) y cb' cr'
-  where cb' = M.map (\(fromIntegral -> n) -> 0.344 * (n - 128)) cb
-        cr' = M.map (\(fromIntegral -> n) -> 0.714 * (n - 128)) cr
+  where cb' = M.map (\n -> 0.344 * (fromIntegral n - 128)) cb
+        cr' = M.map (\n -> 0.714 * (fromIntegral n - 128)) cr
 
 -- | Recover the B Channel.
 toB :: Chan Y Int -> Chan Cb Int -> Chan B Int
 toB (_mat -> y) (_mat -> cb) = Chan $ M.zipWith (\a b -> a + b) y cb'
-  where cb' = M.map (\(fromIntegral -> n) -> round $ 1.773 * (n - 128)) cb
+  where cb' = M.map (\n -> round $ 1.773 * (fromIntegral n - 128)) cb
 
 -- | Create a `Jpeg`, with its values in the YCbCr colour space from a
 -- JuicyPixels RGB `Image`.
@@ -129,3 +138,34 @@ jpeg fp = do
 -- | Downsample a JPEG to 4:2:0.
 downsample :: Jpeg -> Jpeg
 downsample = id
+
+-- | Convert a Channel into a List-of-Lists of 8x8 subchannels.
+blocks :: Chan a Int -> [[Chan a Int]]
+blocks = undefined
+
+-- | The Discrete Cosine Transform. It's math! Woohoo!
+-- This is the main source of data loss in the compression process.
+-- Input channel `Matrix` must be of size 8x8, or the function will yield
+-- `Nothing`.
+dct :: Chan a Int -> Maybe (Chan a Float)
+dct c | dim (_mat c) == (8,8) = Just $ dct' c
+      | otherwise = Nothing
+
+-- | Oh? Playing with fire? This version won't check the size of the input.
+dct' :: Chan a Int -> Chan a Float
+dct' = undefined
+
+-- | The Inverse Discrete Cosine Transform.
+-- Input channel `Matrix` must be of size 8x8.
+idct :: Chan a Float -> Maybe (Chan a Int)
+idct c | dim (_mat c) == (8,8) = Just $ idct' c
+       | otherwise = Nothing
+
+-- | I see you like living on the edge. This won't check the input size.
+idct' :: Chan a Float -> Chan a Int
+idct' = undefined
+
+-- | Revert a List-of-Lists of 8x8 subchannels into their original
+-- single Matrix form.
+unblocks :: [[Chan a Int]] -> Chan a Int
+unblocks = undefined
