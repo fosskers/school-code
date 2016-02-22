@@ -15,13 +15,10 @@ module JPEG
        , toR
        , toG
        , toB
-         -- * IO
-       , image
        ) where
 
 import           Codec.Picture.Jpg
 import           Codec.Picture.Types
-import           Control.Monad ((>=>))
 import qualified Data.ByteString as B
 import           Data.Matrix as M
 import           Data.Vector as V
@@ -57,7 +54,8 @@ data G
 data B
 
 -- | A channel is a matrix of pixel values, not constrained to any
--- particular `Num` type.
+-- particular `Num` type. @c@ is a phantom parameter for indicating
+-- the specific Channel type.
 newtype Chan c a = Chan { _mat :: Matrix a } deriving (Eq,Show)
 
 -- | Will always yield an RGB `Image` when successful.
@@ -74,57 +72,59 @@ trips v | V.null v = V.empty
 -- | Produce a Luminance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toY :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Y Int
-toY (_mat -> r) (_mat -> g) (_mat -> b) =
-  Chan $ M.zipWith3 (\x y z -> round $ x + y + z) r' g' b'
-  where r' = M.map ((* (0.299 :: Float)) . fromIntegral) r
-        g' = M.map ((* (0.587 :: Float)) . fromIntegral) g
-        b' = M.map ((* (0.114 :: Float)) . fromIntegral) b
+toY r g b = Chan $ M.zipWith3 (\x y z -> round $ x + y + z) r' g' b'
+  where r' = M.map ((* (0.299 :: Float)) . fromIntegral) $ _mat r
+        g' = M.map ((* (0.587 :: Float)) . fromIntegral) $ _mat g
+        b' = M.map ((* (0.114 :: Float)) . fromIntegral) $ _mat b
 
 -- | Produce a Blue-Yellow Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toCb :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cb Int
-toCb (_mat -> r) (_mat -> g) (_mat -> b) =
-  Chan $ M.zipWith3 (\x y z -> round $ 128 - x - y + z) r' g' b'
-  where r' = M.map ((* (0.169 :: Float)) . fromIntegral) r
-        g' = M.map ((* (0.331 :: Float)) . fromIntegral) g
-        b' = M.map ((* (0.500 :: Float)) . fromIntegral) b
+toCb r g b = Chan $ M.zipWith3 (\x y z -> round $ 128 - x - y + z) r' g' b'
+  where r' = M.map ((* (0.169 :: Float)) . fromIntegral) $ _mat r
+        g' = M.map ((* (0.331 :: Float)) . fromIntegral) $ _mat g
+        b' = M.map ((* (0.500 :: Float)) . fromIntegral) $ _mat b
 
 -- | Produce a Red-Green Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toCr :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cr Int
-toCr (_mat -> r) (_mat -> g) (_mat -> b) =
-  Chan $ M.zipWith3 (\x y z -> round $ 128 + x - y - z) r' g' b'
-  where r' = M.map ((* (0.500 :: Float)) . fromIntegral) r
-        g' = M.map ((* (0.419 :: Float)) . fromIntegral) g
-        b' = M.map ((* (0.081 :: Float)) . fromIntegral) b
+toCr r g b = Chan $ M.zipWith3 (\x y z -> round $ 128 + x - y - z) r' g' b'
+  where r' = M.map ((* (0.500 :: Float)) . fromIntegral) $ _mat r
+        g' = M.map ((* (0.419 :: Float)) . fromIntegral) $ _mat g
+        b' = M.map ((* (0.081 :: Float)) . fromIntegral) $ _mat b
 
+-- | Recover the R Channel.
 toR :: Chan Y Int -> Chan Cr Int -> Chan R Int
 toR (_mat -> y) (_mat -> cr) = Chan $ M.zipWith (\a b -> a + b) y cr'
   where cr' = M.map (\(fromIntegral -> n) -> round $ 1.403 * (n - 128)) cr
 
+-- | Recover the G Channel.
 toG :: Chan Y Int -> Chan Cb Int -> Chan Cr Int -> Chan G Int
 toG (_mat -> y) (_mat -> cb) (_mat -> cr) =
   Chan $ M.zipWith3 (\a b c -> round $ fromIntegral a - b - c) y cb' cr'
   where cb' = M.map (\(fromIntegral -> n) -> 0.344 * (n - 128)) cb
         cr' = M.map (\(fromIntegral -> n) -> 0.714 * (n - 128)) cr
 
+-- | Recover the B Channel.
 toB :: Chan Y Int -> Chan Cb Int -> Chan B Int
 toB (_mat -> y) (_mat -> cb) = Chan $ M.zipWith (\a b -> a + b) y cb'
   where cb' = M.map (\(fromIntegral -> n) -> round $ 1.773 * (n - 128)) cb
 
 -- | Create a `Jpeg`, with its values in the YCbCr colour space from a
 -- JuicyPixels RGB `Image`.
-jpeg :: Image PixelRGB8 -> Jpeg
-jpeg (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
+toJ :: Image PixelRGB8 -> Jpeg
+toJ (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
   where w' = n8 w
         h' = n8 h
         n8 n = n - (n `mod` 8)
         m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fromIntegral u
         (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ Chan . m
 
--- | Read an image file into a JuicyPixels `Image` type.
-image :: FilePath -> IO (Either String (Image PixelRGB8))
-image fp = (decodeJpeg >=> rgb) <$> B.readFile fp
+-- | Read an image file into a our `Jpeg` type.
+jpeg :: FilePath -> IO (Either String Jpeg)
+jpeg fp = do
+  f <- B.readFile fp
+  pure $ toJ <$> (decodeJpeg f >>= rgb)
 
 -- | Downsample a JPEG to 4:2:0.
 downsample :: Jpeg -> Jpeg
