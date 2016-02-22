@@ -35,9 +35,9 @@ import           Lens.Micro
 -- YCbCr colour space. Note that `Word8` is an 8-bit, unsigned integer.
 data Jpeg = Jpeg { _width :: !Int
                  , _height :: !Int
-                 , _y' :: Chan Y  Word8
-                 , _cb :: Chan Cb Word8
-                 , _cr :: Chan Cr Word8 } deriving (Eq,Show)
+                 , _y' :: Chan Y  Int
+                 , _cb :: Chan Cb Int
+                 , _cr :: Chan Cr Int } deriving (Eq,Show)
 
 -- | The Y' Channel from YCbCr.
 data Y
@@ -74,41 +74,40 @@ trips v | V.null v = V.empty
 
 -- | Produce a Luminance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-toY :: Chan R Word8 -> Chan G Word8 -> Chan B Word8 -> Chan Y Word8
-toY r g b = M.zipWith3 (\x y z -> x + y + z) r' g' b'
-  where r' = M.map (round . (* (0.299 :: Double)) . fromIntegral) r
-        g' = M.map (round . (* (0.587 :: Double)) . fromIntegral) g
-        b' = M.map (round . (* (0.114 :: Double)) . fromIntegral) b
+toY :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Y Int
+toY r g b = M.zipWith3 (\x y z -> round $ x + y + z) r' g' b'
+  where r' = M.map ((* (0.299 :: Float)) . fromIntegral) r
+        g' = M.map ((* (0.587 :: Float)) . fromIntegral) g
+        b' = M.map ((* (0.114 :: Float)) . fromIntegral) b
 
 -- | Produce a Blue-Yellow Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-toCb :: Chan R Word8 -> Chan G Word8 -> Chan B Word8 -> Chan Cb Word8
-toCb r g b = M.zipWith3 (\x y z -> 128 - x - y + z) r' g' b'
-  where r' = M.map (round . (* (0.168736 :: Double)) . fromIntegral) r
-        g' = M.map (round . (* (0.331264 :: Double)) . fromIntegral) g
-        b' = M.map (round . (* (0.5 :: Double)) . fromIntegral) b
+toCb :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cb Int
+toCb r g b = M.zipWith3 (\x y z -> round $ 128 - x - y + z) r' g' b'
+  where r' = M.map ((* (0.169 :: Float)) . fromIntegral) r
+        g' = M.map ((* (0.331 :: Float)) . fromIntegral) g
+        b' = M.map ((* (0.500 :: Float)) . fromIntegral) b
 
 -- | Produce a Red-Green Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-toCr :: Chan R Word8 -> Chan G Word8 -> Chan B Word8 -> Chan Cr Word8
-toCr r g b = M.zipWith3 (\x y z -> 128 + x - y - z) r' g' b'
-  where r' = M.map (round . (* (0.5 :: Double)) . fromIntegral) r
-        g' = M.map (round . (* (0.418688 :: Double)) . fromIntegral) g
-        b' = M.map (round . (* (0.081312 :: Double)) . fromIntegral) b
+toCr :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cr Int
+toCr r g b = M.zipWith3 (\x y z -> round $ 128 + x - y - z) r' g' b'
+  where r' = M.map ((* (0.500 :: Float)) . fromIntegral) r
+        g' = M.map ((* (0.419 :: Float)) . fromIntegral) g
+        b' = M.map ((* (0.081 :: Float)) . fromIntegral) b
 
--- TODO: Worry about overflow errors here...
-toR :: Chan Y Word8 -> Chan Cr Word8 -> Chan R Word8
-toR y cr = M.zipWith (+) y cr'
-  where cr' = M.map (\(fromIntegral -> n) -> round $ 1.402 * (n - 128)) cr
+toR :: Chan Y Int -> Chan Cr Int -> Chan R Int
+toR y cr = M.zipWith (\a b -> a + b) y cr'
+  where cr' = M.map (\(fromIntegral -> n) -> round $ 1.403 * (n - 128)) cr
 
-toG :: Chan Y Word8 -> Chan Cb Word8 -> Chan Cr Word8 -> Chan G Word8
-toG y cb cr = M.zipWith3 (\a b c -> a - b - c) y cb' cr'
-  where cb' = M.map (\(fromIntegral -> n) -> round $ 0.34414 * (n - 128)) cb
-        cr' = M.map (\(fromIntegral -> n) -> round $ 0.71414 * (n - 128)) cr
+toG :: Chan Y Int -> Chan Cb Int -> Chan Cr Int -> Chan G Int
+toG y cb cr = M.zipWith3 (\a b c -> round $ fromIntegral a - b - c) y cb' cr'
+  where cb' = M.map (\(fromIntegral -> n) -> 0.344 * (n - 128)) cb
+        cr' = M.map (\(fromIntegral -> n) -> 0.714 * (n - 128)) cr
 
-toB :: Chan Y Word8 -> Chan Cb Word8 -> Chan B Word8
-toB y cb = M.zipWith (+) y cb'
-  where cb' = M.map (\(fromIntegral -> n) -> round $ 1.772 * (n - 128)) cb
+toB :: Chan Y Int -> Chan Cb Int -> Chan B Int
+toB y cb = M.zipWith (\a b -> a + b) y cb'
+  where cb' = M.map (\(fromIntegral -> n) -> round $ 1.773 * (n - 128)) cb
 
 -- | Create a `Jpeg`, with its values in the YCbCr colour space from a
 -- JuicyPixels RGB `Image`.
@@ -117,7 +116,7 @@ jpeg (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
   where w' = n8 w
         h' = n8 h
         n8 n = n - (n `mod` 8)
-        m u = M.subMatrix (0,0) (w'-1,h'-1) $ M.fromVector (w,h) u
+        m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fromIntegral u
         (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ m
 
 -- | Read an image file into a JuicyPixels `Image` type.

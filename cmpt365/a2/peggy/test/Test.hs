@@ -14,11 +14,15 @@ suite = testGroup "Unit Tests"
   [ testGroup "Colour Conversions"
     [ testCase "RGB -> YCbCr Isomorphism" $ iso (0,0,0)
     , testCase "RGB -> YCbCr Isomorphism" $ iso (110,115,200)
+    , testCase "RGB -> YCbCr Isomorphism" $ iso (50,100,50)
+    , testCase "RGB -> YCbCr Isomorphism" $ iso (1,1,1)
+    , testCase "RGB -> YCbCr Isomorphism" $ iso (255,0,255)
+    , testCase "RGB -> YCbCr Isomorphism" $ iso (123,222,84)
     , testCase "RGB -> YCbCr Isomorphism" $ iso (255,255,255)
     ]
   ]
 
-iso :: (Word8,Word8,Word8) -> Assertion
+iso :: (Int,Int,Int) -> Assertion
 iso (x,y,z) = (toR y' cr, toG y' cb cr, toB y' cb) @?= (r,g,b)
   where r = M.fromVector (1,1) $ V.singleton x
         g = M.fromVector (1,1) $ V.singleton y
