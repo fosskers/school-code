@@ -2,7 +2,6 @@ module Main where
 
 import Data.Matrix as M
 import Data.Vector as V
-import Data.Word (Word8)
 import JPEG
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -24,12 +23,12 @@ suite = testGroup "Unit Tests"
 
 iso :: (Int,Int,Int) -> Assertion
 iso (x,y,z) = (toR y' cr, toG y' cb cr, toB y' cb) @?= (r,g,b)
-  where r = M.fromVector (1,1) $ V.singleton x
-        g = M.fromVector (1,1) $ V.singleton y
-        b = M.fromVector (1,1) $ V.singleton z
+  where r = Chan $ M.fromVector (1,1) $ V.singleton x
+        g = Chan $ M.fromVector (1,1) $ V.singleton y
+        b = Chan $ M.fromVector (1,1) $ V.singleton z
         y' = toY r g b
-        cr = toCr r g b
         cb = toCb r g b
+        cr = toCr r g b
 
 main :: IO ()
 main = defaultMain suite
