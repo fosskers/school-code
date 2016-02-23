@@ -1,5 +1,14 @@
 {-# LANGUAGE ViewPatterns #-}
 
+-- |
+-- Module    : JPEG
+-- Copyright : (c) Colin Woodbury, 2016
+-- License   : BSD3
+-- Maintainer: Colin Woodbury <colingw@gmail.com>
+--
+-- An implementation of JPEG encoding and decoding, minus lossless entropy
+-- encoding, to demonstrate the main aspects of JPEG compression.
+
 module JPEG
        ( -- * Types
          Jpeg(..)
@@ -18,10 +27,12 @@ module JPEG
          -- * Compression
        , downsample
        , blocks
+       , shift
        , dct
        , dct'
-       , shift
+       , quantize
          -- * Decompression
+       , unquantize
        , idct
        , idct'
        , unshift
@@ -168,6 +179,15 @@ dct' = undefined
 -- | Center the pixels around 0 before performing the DCT.
 shift :: Chan a Int -> Chan a Int
 shift = Chan . M.map (\n -> n - 128) . _mat
+
+-- | Quantize a DCT'd channel, given a Quantization Matrix.
+quantize :: Matrix Int -> Chan a Float -> Chan a Int
+quantize q c = undefined
+
+-- | Reverse a quantization, given the Quantization Matrix that was used
+-- during compression.
+unquantize :: Matrix Int -> Chan a Int -> Chan a Float
+unquantize q c = undefined
 
 -- | The Inverse Discrete Cosine Transform.
 -- Input channel `Matrix` must be of size 8x8.
