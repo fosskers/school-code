@@ -20,9 +20,11 @@ module JPEG
        , blocks
        , dct
        , dct'
+       , shift
          -- * Decompression
        , idct
        , idct'
+       , unshift
        , unblocks
        ) where
 
@@ -163,6 +165,10 @@ dct c | dim (_mat c) == (8,8) = Just $ dct' c
 dct' :: Chan a Int -> Chan a Float
 dct' = undefined
 
+-- | Center the pixels around 0 before performing the DCT.
+shift :: Chan a Int -> Chan a Int
+shift = Chan . M.map (\n -> n - 128) . _mat
+
 -- | The Inverse Discrete Cosine Transform.
 -- Input channel `Matrix` must be of size 8x8.
 idct :: Chan a Float -> Maybe (Chan a Int)
@@ -172,6 +178,10 @@ idct c | dim (_mat c) == (8,8) = Just $ idct' c
 -- | I see you like living on the edge. This won't check the input size.
 idct' :: Chan a Float -> Chan a Int
 idct' = undefined
+
+-- | Restore a shifted channel to its original range of [0-255].
+unshift :: Chan a Int -> Chan a Int
+unshift = Chan . M.map (\n -> n + 128) . _mat
 
 -- | Revert a List-of-Lists of 8x8 subchannels into their original
 -- single Matrix form.

@@ -20,8 +20,9 @@ suite = testGroup "Unit Tests"
     , testCase "RGB -> YCbCr Isomorphism" $ iso (255,255,255)
     ]
   , testGroup "Block Splitting"
-    [ testCase "Isomorphism" bSplit
+    [ testCase "Isomorphism" $ (unblocks $ blocks c) @?= c
     ]
+  , testCase "Shifting" $ (unshift $ shift c) @?= c
   ]
 
 iso :: (Int,Int,Int) -> Assertion
@@ -32,9 +33,6 @@ iso (x,y,z) = (toR y' cr, toG y' cb cr, toB y' cb) @?= (r,g,b)
         y' = toY r g b
         cb = toCb r g b
         cr = toCr r g b
-
-bSplit :: Assertion
-bSplit = (unblocks $ blocks c) @?= c
 
 c :: Chan a Int
 c = Chan . M.fromVector (8,8) $ V.fromList [1..64]
