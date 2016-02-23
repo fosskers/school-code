@@ -29,6 +29,7 @@ module JPEG
 import           Codec.Picture.Jpg
 import           Codec.Picture.Types
 import qualified Data.ByteString as B
+import           Data.List (groupBy)
 import           Data.Matrix as M
 import           Data.Vector as V
 import qualified Data.Vector.Storable as VS
@@ -141,7 +142,14 @@ downsample = id
 
 -- | Convert a Channel into a List-of-Lists of 8x8 subchannels.
 blocks :: Chan a Int -> [[Chan a Int]]
-blocks = undefined
+blocks (_mat -> c) = (indexes $ dim c) & each . each %~ Chan . f
+  where f (i,j) = M.subMatrix (i,j) (i+7,j+7) c
+
+-- | The starting indices of every 8x8 subchannel within a parent channel's
+-- inner `Matrix`.
+indexes :: (Int,Int) -> [[(Int,Int)]]
+indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
+  where is = (,) <$> [0,8..w-8] <*> [0,8..h-8]
 
 -- | The Discrete Cosine Transform. It's math! Woohoo!
 -- This is the main source of data loss in the compression process.
@@ -168,4 +176,5 @@ idct' = undefined
 -- | Revert a List-of-Lists of 8x8 subchannels into their original
 -- single Matrix form.
 unblocks :: [[Chan a Int]] -> Chan a Int
-unblocks = undefined
+unblocks cc = Chan $ M.fromBlocks 0 cc'
+  where cc' = cc & each . each %~ _mat  -- Should be compiled away.
