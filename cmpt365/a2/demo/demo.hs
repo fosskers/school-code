@@ -1,32 +1,48 @@
 import Data.Matrix as M
 import JPEG
+import Lens.Micro
 import System.Environment
 
 ---
 
+-- | Read a given JPEG file, compress it, decompress it, report the error,
+-- and save the image back out.
 main :: IO ()
 main = do
   (fp:_) <- getArgs
   i <- jpeg fp
   case i of
-    Left err -> putStrLn err
-    Right img -> do
-      print $ _width img
-      print $ _height img
-      print $ (_mat $ _y' img) M.! (0,0)
+    Left e -> putStrLn e
+    Right (Jpeg w h y cb cr) -> do
+      putStrLn "Image read successfully."
+      putStrLn "Compressing and decompressing again..."
+      let y'  = compDecomp y
+          cb' = compDecomp cb
+          cr' = compDecomp cr
+      putStrLn $ "Y' Error: " ++ show (err (w,h) y y')
+      putStrLn $ "Cb Error: " ++ show (err (w,h) cb cb')
+      putStrLn $ "Cr Error: " ++ show (err (w,h) cr cr')
+
+-- | Compress and decompress each full JPEG channel.
+compDecomp :: Chan a Int -> Chan a Int
+compDecomp c = unblocks (blocks c & each . each %~ iso)
+
+-- | The Compression-Decompression Isomorphism for a single 8x8 channel.
+iso :: Chan a Int -> Chan a Int
+iso = unshift . idct . unquantize q50 . quantize q50 . dct . shift
 
 -- | Average error for a single 8x8 test channel.
-iso :: IO ()
-iso = do
+exErr :: IO ()
+exErr = do
   print ex
-  let ex' = unshift . idct . unquantize q50 . quantize q50 . dct $ shift ex
-      e = err ex ex'
+  let ex' = iso ex
+      e = err (8,8) ex ex'
   print ex'
   putStrLn $ "Isomorphism Error: " ++ show e
 
 -- | Calculate the error between to 8x8 channels.
-err :: Chan a Int -> Chan a Int -> Float
-err c1 c2 = (1/64) * fromIntegral (M.foldl (+) 0 errs)
+err :: (Int,Int) -> Chan a Int -> Chan a Int -> Float
+err (w,h) c1 c2 = (1/fromIntegral (w*h)) * fromIntegral (M.foldl (+) 0 errs)
   where errs = M.zipWith (\a b -> abs $ a - b) (_mat c1) (_mat c2)
 
 ex :: Chan a Int

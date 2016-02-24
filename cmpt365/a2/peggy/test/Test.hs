@@ -33,7 +33,7 @@ iso (x,y,z) = (toR y' cr, toG y' cb cr, toB y' cb) @?= (r,g,b)
         cr = toCr r g b
 
 c :: Chan a Int
-c = Chan . M.fromVector (8,8) $ V.fromList [1..64]
+c = Chan $ chan [1..64]
 
 main :: IO ()
 main = defaultMain suite
