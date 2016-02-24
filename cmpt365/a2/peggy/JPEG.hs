@@ -164,22 +164,25 @@ indexes :: (Int,Int) -> [[(Int,Int)]]
 indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
   where is = (,) <$> [0,8..w-8] <*> [0,8..h-8]
 
+-- | Center the pixels around 0 to fix them in the range [-128,127].
+-- This should be used before performing the DCT.
+shift :: Chan a Int -> Chan a Int
+shift = Chan . M.map (\n -> n - 128) . _mat
+
 -- | The Discrete Cosine Transform. It's math! Woohoo!
 -- This actually performs an arbitrary-sized DCT and isn't at all
 -- contrained to 8x8 dimensions. However, the input `Matrix`
 -- must be 0-centered, for instance by the `shift` function.
 dct :: Chan a Int -> Chan a Float
 dct (_mat -> c) = Chan $ M.imap f c
-  where a 0 = 1 / sqrt 2
-        a _ = 1
-        f (u,v) _ = 0.25 * a u * a v * (M.foldl (+) 0 $ M.imap g c)
+  where f (u,v) _ = 0.25 * alpha u * alpha v * (M.foldl (+) 0 $ M.imap g c)
           where g (x,y) p = fi p * cos ((2 * fi x + 1) * fi u * pi / 16)
                                  * cos ((2 * fi y + 1) * fi v * pi / 16)
 
--- | Center the pixels around 0 to fix them in the range [-128,127].
--- This should be used before performing the DCT.
-shift :: Chan a Int -> Chan a Int
-shift = Chan . M.map (\n -> n - 128) . _mat
+-- | Used in both the DCT and the IDCT.
+alpha :: Int -> Float
+alpha 0 = 1 / sqrt 2
+alpha _ = 1
 
 -- | Quantize a DCT'd channel, given a Quantization Matrix.
 -- This is the main source of data loss in the compression process.
@@ -188,8 +191,8 @@ quantize q c = Chan $ M.zipWith (\c' q' -> round $ c' / fi q') (_mat c) q
 
 -- | Reverse a quantization, given the Quantization Matrix that was used
 -- during compression.
-unquantize :: Matrix Int -> Chan a Int -> Chan a Float
-unquantize q c = undefined
+unquantize :: Matrix Int -> Chan a Int -> Chan a Int
+unquantize q c = Chan . M.zipWith (*) q $ _mat c
 
 -- | The Inverse Discrete Cosine Transform.
 idct :: Chan a Float -> Chan a Int
