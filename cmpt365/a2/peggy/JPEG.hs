@@ -195,8 +195,12 @@ unquantize :: Matrix Int -> Chan a Int -> Chan a Int
 unquantize q c = Chan . M.zipWith (*) q $ _mat c
 
 -- | The Inverse Discrete Cosine Transform.
-idct :: Chan a Float -> Chan a Int
-idct c = undefined
+idct :: Chan a Int -> Chan a Int
+idct (_mat -> c) = Chan $ M.imap f c
+  where f (x,y) _ = round $ 0.25 * (M.foldl (+) 0 $ M.imap g c)
+          where g (u,v) p = alpha u * alpha v * fi p
+                            * cos ((2 * fi x + 1) * fi u * pi / 16)
+                            * cos ((2 * fi y + 1) * fi v * pi / 16)
 
 -- | Restore a shifted channel to its original range of [0-255].
 unshift :: Chan a Int -> Chan a Int
