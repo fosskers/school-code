@@ -96,42 +96,42 @@ trips v | V.null v = V.empty
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toY :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Y Int
 toY r g b = Chan $ M.zipWith3 (\x y z -> round $ x + y + z) r' g' b'
-  where r' = M.map ((* (0.299 :: Float)) . fromIntegral) $ _mat r
-        g' = M.map ((* (0.587 :: Float)) . fromIntegral) $ _mat g
-        b' = M.map ((* (0.114 :: Float)) . fromIntegral) $ _mat b
+  where r' = M.map ((* (0.299 :: Float)) . fi) $ _mat r
+        g' = M.map ((* (0.587 :: Float)) . fi) $ _mat g
+        b' = M.map ((* (0.114 :: Float)) . fi) $ _mat b
 
 -- | Produce a Blue-Yellow Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toCb :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cb Int
 toCb r g b = Chan $ M.zipWith3 (\x y z -> round $ 128 - x - y + z) r' g' b'
-  where r' = M.map ((* (0.169 :: Float)) . fromIntegral) $ _mat r
-        g' = M.map ((* (0.331 :: Float)) . fromIntegral) $ _mat g
-        b' = M.map ((* (0.500 :: Float)) . fromIntegral) $ _mat b
+  where r' = M.map ((* (0.169 :: Float)) . fi) $ _mat r
+        g' = M.map ((* (0.331 :: Float)) . fi) $ _mat g
+        b' = M.map ((* (0.500 :: Float)) . fi) $ _mat b
 
 -- | Produce a Red-Green Chrominance Channel from RGB Channels.
 -- https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
 toCr :: Chan R Int -> Chan G Int -> Chan B Int -> Chan Cr Int
 toCr r g b = Chan $ M.zipWith3 (\x y z -> round $ 128 + x - y - z) r' g' b'
-  where r' = M.map ((* (0.500 :: Float)) . fromIntegral) $ _mat r
-        g' = M.map ((* (0.419 :: Float)) . fromIntegral) $ _mat g
-        b' = M.map ((* (0.081 :: Float)) . fromIntegral) $ _mat b
+  where r' = M.map ((* (0.500 :: Float)) . fi) $ _mat r
+        g' = M.map ((* (0.419 :: Float)) . fi) $ _mat g
+        b' = M.map ((* (0.081 :: Float)) . fi) $ _mat b
 
 -- | Recover the R Channel.
 toR :: Chan Y Int -> Chan Cr Int -> Chan R Int
 toR (_mat -> y) (_mat -> cr) = Chan $ M.zipWith (\a b -> a + b) y cr'
-  where cr' = M.map (\n -> round $ 1.403 * (fromIntegral n - 128)) cr
+  where cr' = M.map (\n -> round $ 1.403 * (fi n - 128)) cr
 
 -- | Recover the G Channel.
 toG :: Chan Y Int -> Chan Cb Int -> Chan Cr Int -> Chan G Int
 toG (_mat -> y) (_mat -> cb) (_mat -> cr) =
-  Chan $ M.zipWith3 (\a b c -> round $ fromIntegral a - b - c) y cb' cr'
-  where cb' = M.map (\n -> 0.344 * (fromIntegral n - 128)) cb
-        cr' = M.map (\n -> 0.714 * (fromIntegral n - 128)) cr
+  Chan $ M.zipWith3 (\a b c -> round $ fi a - b - c) y cb' cr'
+  where cb' = M.map (\n -> 0.344 * (fi n - 128)) cb
+        cr' = M.map (\n -> 0.714 * (fi n - 128)) cr
 
 -- | Recover the B Channel.
 toB :: Chan Y Int -> Chan Cb Int -> Chan B Int
 toB (_mat -> y) (_mat -> cb) = Chan $ M.zipWith (\a b -> a + b) y cb'
-  where cb' = M.map (\n -> round $ 1.773 * (fromIntegral n - 128)) cb
+  where cb' = M.map (\n -> round $ 1.773 * (fi n - 128)) cb
 
 -- | Create a `Jpeg`, with its values in the YCbCr colour space from a
 -- JuicyPixels RGB `Image`.
@@ -140,7 +140,7 @@ toJ (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
   where w' = n8 w
         h' = n8 h
         n8 n = n - (n `mod` 8)
-        m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fromIntegral u
+        m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fi u
         (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ Chan . m
 
 -- | Read an image file into a our `Jpeg` type.
@@ -167,14 +167,20 @@ indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
 -- | The Discrete Cosine Transform. It's math! Woohoo!
 -- This is the main source of data loss in the compression process.
 -- Input channel `Matrix` must be of size 8x8, or the function will yield
--- `Nothing`.
+-- `Nothing`. Each `Int` must be 0-centered, for instance by the `shift`
+-- function.
 dct :: Chan a Int -> Maybe (Chan a Float)
 dct c | dim (_mat c) == (8,8) = Just $ dct' c
       | otherwise = Nothing
 
 -- | Oh? Playing with fire? This version won't check the size of the input.
 dct' :: Chan a Int -> Chan a Float
-dct' = undefined
+dct' (_mat -> c) = Chan $ M.imap f c
+  where a 0 = 1 / sqrt 2
+        a _ = 1
+        f (u,v) _ = 0.25 * a u * a v * (M.foldl (+) 0 $ M.imap g c)
+          where g (x,y) p = fi p * cos ((2 * fi x + 1) * fi u * pi / 16)
+                                 * cos ((2 * fi y + 1) * fi v * pi / 16)
 
 -- | Center the pixels around 0 before performing the DCT.
 shift :: Chan a Int -> Chan a Int
@@ -208,3 +214,17 @@ unshift = Chan . M.map (\n -> n + 128) . _mat
 unblocks :: [[Chan a Int]] -> Chan a Int
 unblocks cc = Chan $ M.fromBlocks 0 cc'
   where cc' = cc & each . each %~ _mat  -- Should be compiled away.
+
+-- | A shorter alias.
+fi :: (Integral a, Num b) => a -> b
+fi = fromIntegral
+
+ex :: Chan a Int
+ex = Chan . M.fromVector (8,8) $ V.fromList [ 52,55,61,66,70,61,64,73
+                                            , 63,59,55,90,109,85,69,72
+                                            , 62,59,68,113,144,104,66,73
+                                            , 63,58,71,122,154,106,70,69
+                                            , 67,61,68,104,126,88,68,70
+                                            , 79,65,60,70,77,68,58,75
+                                            , 85,71,64,59,55,61,65,83
+                                            , 87,79,69,68,65,76,78,94 ]
