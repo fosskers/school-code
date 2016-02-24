@@ -40,7 +40,10 @@ module JPEG
        , q50
          -- * Type Conversion
        , toJ
+       , toJ'
        , toImage
+       , toImage'
+       , ycbcr
        ) where
 
 import           Codec.Picture.Jpg
@@ -93,6 +96,10 @@ chan = M.fromVector (8,8) . V.fromList
 rgb :: DynamicImage -> Either String (Image PixelRGB8)
 rgb (ImageYCbCr8 i) = Right $ convertImage i
 rgb _ = Left "DynamicImage was not YCbCr."
+
+ycbcr :: DynamicImage -> Either String (Image PixelYCbCr8)
+ycbcr (ImageYCbCr8 i) = Right i
+ycbcr _ = Left "DynamicImage was not YCbCr."
 
 -- | Convert a Vector of contiguous pixel values into their triples.
 -- Vector size *must* be a multiple of 3!
@@ -151,6 +158,15 @@ toJ (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
         m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fi u
         (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ Chan . m
 
+-- | Convert straight from YCbCr instead.
+toJ' :: Image PixelYCbCr8 -> Jpeg
+toJ' (Image w h v) = Jpeg w' h' c1 c2 c3
+  where w' = n8 w
+        h' = n8 h
+        n8 n = n - (n `mod` 8)
+        m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fi u
+        (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ Chan . m
+
 -- | Convert our `Jpeg` back to a JuicyPixels RGB `Image`.
 toImage :: Jpeg -> Image PixelRGB8
 toImage (Jpeg w h y' cb cr) = Image w h v
@@ -160,11 +176,17 @@ toImage (Jpeg w h y' cb cr) = Image w h v
         g = f $ toG y' cb cr
         b = f $ toB y' cb
 
+-- | Convert straight to YCbCr instead.
+toImage' :: Jpeg -> Image PixelYCbCr8
+toImage' (Jpeg w h y' cb cr) = Image w h v
+  where v = VS.fromList $ V.zipWith3 (,,) (f y') (f cb) (f cr) ^.. traverse . each
+        f = V.map fromIntegral . M.flatten . _mat
+
 -- | Read an image file into a our `Jpeg` type.
 jpeg :: FilePath -> IO (Either String Jpeg)
 jpeg fp = do
   f <- B.readFile fp
-  pure $ toJ <$> (decodeJpeg f >>= rgb)
+  pure $ toJ' <$> (decodeJpeg f >>= ycbcr)
 
 -- | Downsample a JPEG to 4:2:0.
 downsample :: Jpeg -> Jpeg

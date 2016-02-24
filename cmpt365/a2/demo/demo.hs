@@ -1,7 +1,11 @@
-import Data.Matrix as M
-import JPEG
-import Lens.Micro
-import System.Environment
+import           Codec.Picture.Jpg
+import           Codec.Picture.Types
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import           Data.Matrix as M
+import           JPEG
+import           Lens.Micro
+import           System.Environment
 
 ---
 
@@ -22,6 +26,20 @@ main = do
       putStrLn $ "Y' Error: " ++ show (err (w,h) y y')
       putStrLn $ "Cb Error: " ++ show (err (w,h) cb cb')
       putStrLn $ "Cr Error: " ++ show (err (w,h) cr cr')
+      putStrLn "Writing out new Image..."
+      let i' = toImage' $ Jpeg w h y' cb' cr'
+      BL.writeFile ("new-" ++ fp) $ encodeJpegAtQuality 100 i'
+      putStrLn "Done."
+
+-- | Q: Is there a problem with JuicyPixels output?
+-- A: No. It's the type conversion!
+foo :: IO ()
+foo = do
+  f <- B.readFile "/home/colin/code/school-code/cmpt365/a2/small-kitten.jpeg"
+  let f' = encodeJpegAtQuality 100 . toImage' . toJ' <$> (decodeJpeg f >>= ycbcr)
+  case f' of
+    Left _ -> putStrLn "Shit."
+    Right f'' -> BL.writeFile "/home/colin/code/school-code/cmpt365/a2/test.jpeg" $ f''
 
 -- | Compress and decompress a full JPEG channel.
 compDecomp :: Chan a Int -> Chan a Int
@@ -35,13 +53,3 @@ iso = unshift . idct . unquantize q50 . quantize q50 . dct . shift
 err :: (Int,Int) -> Chan a Int -> Chan a Int -> Float
 err (w,h) c1 c2 = (1/fromIntegral (w*h)) * fromIntegral (M.foldl (+) 0 errs)
   where errs = M.zipWith (\a b -> abs $ a - b) (_mat c1) (_mat c2)
-
-ex :: Chan a Int
-ex = Chan $ chan [ 52,55,61,66,70,61,64,73
-                 , 63,59,55,90,109,85,69,72
-                 , 62,59,68,113,144,104,66,73
-                 , 63,58,71,122,154,106,70,69
-                 , 67,61,68,104,126,88,68,70
-                 , 79,65,60,70,77,68,58,75
-                 , 85,71,64,59,55,61,65,83
-                 , 87,79,69,68,65,76,78,94 ]
