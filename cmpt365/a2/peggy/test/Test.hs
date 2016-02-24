@@ -19,9 +19,7 @@ suite = testGroup "Unit Tests"
     , testCase "RGB -> YCbCr Isomorphism" $ iso (123,222,84)
     , testCase "RGB -> YCbCr Isomorphism" $ iso (255,255,255)
     ]
-  , testGroup "Block Splitting"
-    [ testCase "Isomorphism" $ (unblocks $ blocks c) @?= c
-    ]
+  , testCase "Block Splitting" $ (unblocks $ blocks c) @?= c
   , testCase "Shifting" $ (unshift $ shift c) @?= c
   ]
 
