@@ -4,9 +4,9 @@
 name:                peggy
 version:             1.0.0
 synopsis:            (Educational) Encode and decode JPEG images.
-description:         An implementation of JPEG encoding and decoding,
+description:         An implementation of JPEG compression and decompression,
                      minus lossless entropy encoding, to demonstrate
-                     the main aspects of JPEG compression.
+                     the main aspects of JPEG.
 author:              Colin Woodbury
 maintainer:          colingw@gmail.com
 build-type:          Simple

@@ -6,8 +6,8 @@
 -- License   : BSD3
 -- Maintainer: Colin Woodbury <colingw@gmail.com>
 --
--- An implementation of JPEG encoding and decoding, minus lossless entropy
--- encoding, to demonstrate the main aspects of JPEG compression.
+-- An implementation of JPEG compression and decompression, minus lossless
+-- entropy encoding, to demonstrate the main aspects of JPEG.
 
 module JPEG
        ( -- * Types
@@ -29,12 +29,10 @@ module JPEG
        , blocks
        , shift
        , dct
-       , dct'
        , quantize
          -- * Decompression
        , unquantize
        , idct
-       , idct'
        , unshift
        , unblocks
          -- * Quantization Matrices
@@ -167,25 +165,19 @@ indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
   where is = (,) <$> [0,8..w-8] <*> [0,8..h-8]
 
 -- | The Discrete Cosine Transform. It's math! Woohoo!
--- Input channel `Matrix` must be of size 8x8, or the function will yield
--- `Nothing`. It must also be 0-centered, for instance by the `shift`
--- function.
-dct :: Chan a Int -> Maybe (Chan a Float)
-dct c | dim (_mat c) == (8,8) = Just $ dct' c
-      | otherwise = Nothing
-
--- | Oh? Playing with fire? This version won't check the size of the input.
--- It actually performs an arbitrary-sized DCT and isn't at all
--- contrained to 8x8 dimensions.
-dct' :: Chan a Int -> Chan a Float
-dct' (_mat -> c) = Chan $ M.imap f c
+-- This actually performs an arbitrary-sized DCT and isn't at all
+-- contrained to 8x8 dimensions. However, the input `Matrix`
+-- must be 0-centered, for instance by the `shift` function.
+dct :: Chan a Int -> Chan a Float
+dct (_mat -> c) = Chan $ M.imap f c
   where a 0 = 1 / sqrt 2
         a _ = 1
         f (u,v) _ = 0.25 * a u * a v * (M.foldl (+) 0 $ M.imap g c)
           where g (x,y) p = fi p * cos ((2 * fi x + 1) * fi u * pi / 16)
                                  * cos ((2 * fi y + 1) * fi v * pi / 16)
 
--- | Center the pixels around 0 before performing the DCT.
+-- | Center the pixels around 0 to fix them in the range [-128,127].
+-- This should be used before performing the DCT.
 shift :: Chan a Int -> Chan a Int
 shift = Chan . M.map (\n -> n - 128) . _mat
 
@@ -200,14 +192,8 @@ unquantize :: Matrix Int -> Chan a Int -> Chan a Float
 unquantize q c = undefined
 
 -- | The Inverse Discrete Cosine Transform.
--- Input channel `Matrix` must be of size 8x8.
-idct :: Chan a Float -> Maybe (Chan a Int)
-idct c | dim (_mat c) == (8,8) = Just $ idct' c
-       | otherwise = Nothing
-
--- | I see you like living on the edge. This won't check the input size.
-idct' :: Chan a Float -> Chan a Int
-idct' = undefined
+idct :: Chan a Float -> Chan a Int
+idct c = undefined
 
 -- | Restore a shifted channel to its original range of [0-255].
 unshift :: Chan a Int -> Chan a Int
