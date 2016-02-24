@@ -1,0 +1,162 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FONT
+\usepackage{arev}
+\usepackage[T1]{fontenc}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 365 - Assignment 2 : JPEG Compression}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\section{Motivation}
+JPEG is an undeniable standard in the computing world, and it employs
+some interesting mathematics that warrent careful study. This project
+was an excellent opportunity to write a small, useful library that
+someone might find useful, if not just for educational purposes. I named
+the library \emph{peggy}.
+
+\section{Tool Choice}
+\subsection{Haskell}
+Haskell was the clear language choice for me, as it is my primary language.
+It has an active community and a very robust set of 3rd-party packages,
+and it allows me to code the quickest with the fewest headaches. The
+entire \emph{peggy} library I produced is only about 250 lines including
+comments and module headers.
+
+\subsection{JuicyPixels}
+\href{http://hackage.haskell.org/package/JuicyPixels-3.2.7}{JuicyPixels}
+is an image manipulation library for Haskell. I used it only for initial
+input and output of jpeg data, so that I could test on real jpegs.
+
+\subsection{Matrices}
+After testing out a number of linear algebra libraries
+(\href{https://github.com/fosskers/playground/tree/master/haskell/eigen}{here}, \href{https://github.com/fosskers/playground/tree/master/haskell/linear}{here} and \href{https://github.com/fosskers/playground/tree/master/haskell/matrices}{here}), I settled on the
+\href{http://hackage.haskell.org/package/matrices}{matrices} package.
+It is written in native Haskell (with no binding to lower C libraries, etc.),
+and allowed for two key operatations:
+
+\begin{itemize}
+\item Submatrices for both truncating a non-8x8 image to a nicer size, and
+  for block splitting during compression.
+  Example: Given some \emph{Matrix} m, \fbox{subMatrix (0,0) (5,5) m}
+\item Reparation of split 8x8 submatrices to form the original Channel matrix.
+\end{itemize}
+
+This library was nice to use, but as we will see below in the \emph{Failures}
+section, it may have been the cause of some issues.
+
+\section{Methods}
+\subsection{Phantom Typing}
+I leveraged \emph{Phantom Typing} in Haskell to ensure type-safety
+when manipulating the various channels.
+
+\begin{lstlisting}
+-- | A Jpeg has a height and width, and three colour channels from the
+-- YCbCr colour space.
+data Jpeg = Jpeg { _width :: !Int
+                 , _height :: !Int
+                 , _y' :: Chan Y  Int
+                 , _cb :: Chan Cb Int
+                 , _cr :: Chan Cr Int } deriving (Eq,Show)
+
+-- | A channel is a matrix of pixel values, not constrained to any
+-- particular `Num` type. @c@ is a phantom parameter for indicating
+-- the specific Channel type.
+newtype Chan c a = Chan { _mat :: Matrix a } deriving (Eq,Show)
+  
+\end{lstlisting}
+
+Notice the \emph{c} parameter in the \emph{Chan} newtype is not used in
+the actual data definition. This allowed me to define functions like
+\emph{toR} that recovers an RGB \emph{R} channel from type-guaranteed
+Y and Cr channels:
+
+\begin{lstlisting}
+-- | Recover the R Channel.
+toR :: Chan Y Int -> Chan Cr Int -> Chan R Int
+toR (_mat -> y) (_mat -> cr) = Chan $ M.zipWith (\a b -> a + b) y cr'
+  where cr' = M.map (\n -> round $ 1.403 * (fi n - 128)) cr
+\end{lstlisting}
+
+\subsection{Lenses}
+\emph{lens} is a well-known library in the Haskell world for manipulating
+nested data structures in a pure functional way. Splitting a channel
+into a List-of-Lists of 8x8 subchannels was a simple as:
+
+\begin{lstlisting}
+-- | Convert a Channel into a List-of-Lists of 8x8 subchannels.
+blocks :: Chan a Int -> [[Chan a Int]]
+blocks (_mat -> c) = (indexes $ dim c) & each . each %~ Chan . f
+  where f (i,j) = M.subMatrix (i,j) (i+7,j+7) c
+
+-- | The starting indices of every 8x8 subchannel within a parent channel's
+-- inner `Matrix`.
+indexes :: (Int,Int) -> [[(Int,Int)]]
+indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
+  where is = (,) <$> [0,8..w-8] <*> [0,8..h-8]  
+\end{lstlisting}
+
+The \fbox{\ldots \& each . each \%\~{} \ldots} construction allows us
+to apply some pure function to the List-of-Lists nested structure
+given by the \emph{indexes} function.
+
+\subsection{Testing Suite}
+I utilized the \emph{tasty} library for unit tests.
+My compress-decompression isomorphism produces the same results
+as the example on the JPEG Wikipedia page.
+
+\section{Results}
+\subsection{Successes}
+With a quantization matrix that yields 50\% quality, we see:
+
+\begin{center}
+  \includegraphics{mtn-square}
+  \includegraphics{new-mtn-square}
+\end{center}
+
+\begin{center}
+  \includegraphics{dots}
+  \includegraphics{new-dots}
+\end{center}
+
+\subsection{Failures}
+Something in my library causes violent skewing for \emph{all} non-square
+images, and even some square ones.
+
+\end{document}
