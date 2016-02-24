@@ -15,6 +15,7 @@ module JPEG
        , jpeg
        , Chan(..)
        , chan
+       , trips
        , Y, Cb, Cr, R, G, B
          -- * Colour Space Conversion
          -- ** RGB to YCbCr

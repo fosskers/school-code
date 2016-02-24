@@ -146,17 +146,90 @@ as the example on the JPEG Wikipedia page.
 With a quantization matrix that yields 50\% quality, we see:
 
 \begin{center}
-  \includegraphics{mtn-square}
-  \includegraphics{new-mtn-square}
+  \includegraphics[scale=2]{mtn-square}
+  \includegraphics[scale=0.5]{new-mtn-square}
 \end{center}
 
 \begin{center}
-  \includegraphics{dots}
-  \includegraphics{new-dots}
+  \includegraphics[scale=2.5]{dots}
+  \includegraphics[scale=2]{new-dots}
 \end{center}
 
+We see some artifacts, but the difference in overall quality is minimal.
+With the mountain image, we see a size reduction of 132kb to 64kb.
+
 \subsection{Failures}
-Something in my library causes violent skewing for \emph{all} non-square
-images, and even some square ones.
+Something in either my library or JuicyPixels causes violent skewing for
+\emph{all} non-square images, and even some square ones. For instance:
+
+\begin{center}
+  \includegraphics[scale=0.5]{small-kitten}
+\end{center}
+
+This is the original image.
+
+\begin{center}
+  \includegraphics[scale=0.5]{03}
+\end{center}
+
+This is the image \emph{only} converted from a JuicyPixels image type
+to my own and back.
+
+\begin{center}
+  \includegraphics[scale=0.5]{02}
+\end{center}
+
+This is the image after applying my compression and decompression functions,
+then reoutputing it with JuicyPixels. Notice that the skewing is even
+worse here.
+
+Strangely, this skewing doesn't occur if I convert-then-deconvert
+(no compression) a square image:
+
+\begin{center}
+  \includegraphics[scale=0.5]{windows}
+  \includegraphics[scale=0.4]{orig-windows}
+\end{center}
+
+Left: original. Right: Converted-then-back.
+
+But, just as oddly and unlike the mountain, this square image \emph{does}
+get skewed when I apply the compression isomorphism:
+
+\begin{center}
+  \includegraphics[scale=0.5]{new-windows}
+\end{center}
+
+The solution to which, after many hours of debugging, I have yet
+to discover.
+
+Possibilities:
+
+\begin{itemize}
+\item Some JPEGs have strange hidden buffer data that my algorithms
+  don't account for
+\item My algorithm is wrong, despite my units test all working
+\item The \emph{matrices} library has bugs
+\end{itemize}
+
+Update: After a few more hours of debugging, I've determined what conditions
+will guarantee what result.
+
+\begin{itemize}
+\item If an image is square, and its dimensions are a multiple of 8,
+  then the image will succeed to compress/decompress, and won't skew. Note
+  that no truncation is performed for these images.
+\item If an image is square, but not a multiple of 8x8, then it
+  will skew only during the compression/decompression process.
+\item If an image is rectangular, it will skew once during type conversion,
+  and \emph{again} during compression.
+\end{itemize}
+
+Thus, there are two locations where skewing is happening. One is within
+my two type conversion functions, and the other is elsewhere. However,
+I cannot pinpoint the exact problem, to the point where I am beginning to
+suspect a bug in the \emph{matrices} library. Doubting one's library is
+a last resort, but I'm left with little else, given that all of my unit
+tests and other manual tests of \emph{matrices} functionality succeed.
 
 \end{document}

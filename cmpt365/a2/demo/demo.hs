@@ -1,7 +1,10 @@
 import           Codec.Picture.Jpg
+import           Codec.Picture.Types
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Matrix as M
+import qualified Data.Vector as V
+import qualified Data.Vector.Storable as VS
 import           JPEG
 import           Lens.Micro
 import           System.Environment
@@ -44,6 +47,18 @@ foo = do
   case f' of
     Left _ -> putStrLn "Shit."
     Right f'' -> BL.writeFile "/home/colin/code/school-code/cmpt365/a2/test.jpeg" $ f''
+
+bar :: IO ()
+bar = do
+  f <- B.readFile "/home/colin/code/school-code/cmpt365/a2/small-kitten.jpeg"
+  let i = decodeJpeg f >>= ycbcr
+      ys = (^.. traverse .  _1) . trips . V.convert . VS.take 900 . imageData <$> i
+      j = toJ' <$> i
+  case (,) <$> j <*> ys of
+    Left _ -> putStrLn "Shit."
+    Right (j',ys') -> do
+      let x = V.toList . V.take 300 . M.flatten . _mat $ _y' j'
+      print $ x == Prelude.map fromIntegral ys'
 
 -- | Compress and decompress a full JPEG channel.
 compDecomp :: Chan a Int -> Chan a Int

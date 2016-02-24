@@ -38,6 +38,7 @@ suite = testGroup "Unit Tests"
 --      , testCase "10x10" $ imageData (toImage' $ toJ' i02) @?= imageData i02
       , testCase "10x10 (by length)" ia
       , testCase "16x16" $ imageData (toImage' $ toJ' i03) @?= imageData i03
+      , testCase "32x8" $ imageData (toImage' $ toJ' i04) @?= imageData i04
       ]
     ]
 
@@ -93,6 +94,11 @@ i03 :: Image PixelYCbCr8
 i03 = Image 16 16 $ VS.fromList l
   where l = (zip3 l' l' l') ^.. traverse . each
         l' = [0..255]        
+
+i04 :: Image PixelYCbCr8
+i04 = Image 32 8 $ VS.fromList l
+  where l = (zip3 l' l' l') ^.. traverse . each
+        l' = [0..255]
 
 ia :: Assertion
 ia = VS.length (imageData . toImage' $ toJ' i02) @?= 64 * 3
