@@ -1,5 +1,4 @@
 import           Codec.Picture.Jpg
-import           Codec.Picture.Types
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import           Data.Matrix as M
@@ -17,8 +16,9 @@ main = do
   i <- jpeg fp
   case i of
     Left e -> putStrLn e
-    Right (Jpeg w h y cb cr) -> do
+    Right j@(Jpeg w h y cb cr) -> do
       putStrLn "Image read successfully."
+      putStrLn $ "Image size: " ++ show (w,h)
       putStrLn "Compressing and decompressing again..."
       let y'  = compDecomp y
           cb' = compDecomp cb
@@ -28,11 +28,15 @@ main = do
       putStrLn $ "Cr Error: " ++ show (err (w,h) cr cr')
       putStrLn "Writing out new Image..."
       let i' = toImage' $ Jpeg w h y' cb' cr'
+      let i'' = toImage' j
       BL.writeFile ("new-" ++ fp) $ encodeJpegAtQuality 100 i'
+      BL.writeFile ("orig-" ++ fp) $ encodeJpegAtQuality 100 i''
       putStrLn "Done."
 
 -- | Q: Is there a problem with JuicyPixels output?
--- A: No. It's the type conversion!
+-- A: No. It's the type conversion! Without the `toImage' . toJ'`,
+-- this outputs the same image it was given. With those, the image is
+-- oddly skewed.
 foo :: IO ()
 foo = do
   f <- B.readFile "/home/colin/code/school-code/cmpt365/a2/small-kitten.jpeg"

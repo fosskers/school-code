@@ -34,6 +34,8 @@ test-suite peggy-test
                      , tasty >= 0.11.0.2
                      , tasty-hunit >= 0.9.2
                      , vector >= 0.11.0.0
+                     , microlens
+                     , JuicyPixels
 
   hs-source-dirs:      test
   main-is:             Test.hs
