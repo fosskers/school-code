@@ -23,7 +23,7 @@ main = do
       putStrLn $ "Cb Error: " ++ show (err (w,h) cb cb')
       putStrLn $ "Cr Error: " ++ show (err (w,h) cr cr')
 
--- | Compress and decompress each full JPEG channel.
+-- | Compress and decompress a full JPEG channel.
 compDecomp :: Chan a Int -> Chan a Int
 compDecomp c = unblocks (blocks c & each . each %~ iso)
 
@@ -31,16 +31,7 @@ compDecomp c = unblocks (blocks c & each . each %~ iso)
 iso :: Chan a Int -> Chan a Int
 iso = unshift . idct . unquantize q50 . quantize q50 . dct . shift
 
--- | Average error for a single 8x8 test channel.
-exErr :: IO ()
-exErr = do
-  print ex
-  let ex' = iso ex
-      e = err (8,8) ex ex'
-  print ex'
-  putStrLn $ "Isomorphism Error: " ++ show e
-
--- | Calculate the error between to 8x8 channels.
+-- | Calculate the error between two channels.
 err :: (Int,Int) -> Chan a Int -> Chan a Int -> Float
 err (w,h) c1 c2 = (1/fromIntegral (w*h)) * fromIntegral (M.foldl (+) 0 errs)
   where errs = M.zipWith (\a b -> abs $ a - b) (_mat c1) (_mat c2)

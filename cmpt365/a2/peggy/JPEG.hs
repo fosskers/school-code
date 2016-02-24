@@ -38,6 +38,9 @@ module JPEG
        , unblocks
          -- * Quantization Matrices
        , q50
+         -- * Type Conversion
+       , toJ
+       , toImage
        ) where
 
 import           Codec.Picture.Jpg
@@ -147,6 +150,15 @@ toJ (Image w h v) = Jpeg w' h' (toY c1 c2 c3) (toCb c1 c2 c3) (toCr c1 c2 c3)
         n8 n = n - (n `mod` 8)
         m u = M.subMatrix (0,0) (w'-1,h'-1) . M.fromVector (w,h) $ V.map fi u
         (c1,c2,c3) = (V.unzip3 . trips $ VS.convert v) & each %~ Chan . m
+
+-- | Convert our `Jpeg` back to a JuicyPixels RGB `Image`.
+toImage :: Jpeg -> Image PixelRGB8
+toImage (Jpeg w h y' cb cr) = Image w h v
+  where v = VS.fromList $ V.zipWith3 (,,) r g b ^.. traverse . each
+        f = V.map fromIntegral . M.flatten . _mat
+        r = f $ toR y' cr
+        g = f $ toG y' cb cr
+        b = f $ toB y' cb
 
 -- | Read an image file into a our `Jpeg` type.
 jpeg :: FilePath -> IO (Either String Jpeg)
