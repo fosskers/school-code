@@ -37,6 +37,8 @@ module JPEG
        , idct'
        , unshift
        , unblocks
+         -- * Quantization Matrices
+       , q50
        ) where
 
 import           Codec.Picture.Jpg
@@ -165,15 +167,16 @@ indexes (w,h) = groupBy (\(a,_) (b,_) -> a == b) is
   where is = (,) <$> [0,8..w-8] <*> [0,8..h-8]
 
 -- | The Discrete Cosine Transform. It's math! Woohoo!
--- This is the main source of data loss in the compression process.
 -- Input channel `Matrix` must be of size 8x8, or the function will yield
--- `Nothing`. Each `Int` must be 0-centered, for instance by the `shift`
+-- `Nothing`. It must also be 0-centered, for instance by the `shift`
 -- function.
 dct :: Chan a Int -> Maybe (Chan a Float)
 dct c | dim (_mat c) == (8,8) = Just $ dct' c
       | otherwise = Nothing
 
 -- | Oh? Playing with fire? This version won't check the size of the input.
+-- It actually performs an arbitrary-sized DCT and isn't at all
+-- contrained to 8x8 dimensions.
 dct' :: Chan a Int -> Chan a Float
 dct' (_mat -> c) = Chan $ M.imap f c
   where a 0 = 1 / sqrt 2
@@ -187,8 +190,9 @@ shift :: Chan a Int -> Chan a Int
 shift = Chan . M.map (\n -> n - 128) . _mat
 
 -- | Quantize a DCT'd channel, given a Quantization Matrix.
+-- This is the main source of data loss in the compression process.
 quantize :: Matrix Int -> Chan a Float -> Chan a Int
-quantize q c = undefined
+quantize q c = Chan $ M.zipWith (\c' q' -> round $ c' / fi q') (_mat c) q
 
 -- | Reverse a quantization, given the Quantization Matrix that was used
 -- during compression.
@@ -214,6 +218,17 @@ unshift = Chan . M.map (\n -> n + 128) . _mat
 unblocks :: [[Chan a Int]] -> Chan a Int
 unblocks cc = Chan $ M.fromBlocks 0 cc'
   where cc' = cc & each . each %~ _mat  -- Should be compiled away.
+
+-- | A quantization Matrix for 50% quality.
+q50 :: Matrix Int
+q50 = M.fromVector (8,8) $ V.fromList [ 16,11,10,16,24,40,51,61
+                                      , 12,12,14,19,26,58,60,55
+                                      , 14,13,16,24,40,57,69,56
+                                      , 14,17,22,29,51,87,80,62
+                                      , 18,22,37,56,68,109,103,77
+                                      , 24,35,55,64,81,104,113,92
+                                      , 49,64,78,87,103,121,120,101
+                                      , 72,92,95,98,112,100,103,99 ]
 
 -- | A shorter alias.
 fi :: (Integral a, Num b) => a -> b
