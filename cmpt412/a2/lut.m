@@ -1,4 +1,4 @@
-% LUT.m
+% lut.m
 % Build a lookup table of surface normals, indexed by the ratios of
 % intensities from three light sources. The spheres used to
 % calibrate the LUT must be available in the directory this
@@ -32,19 +32,23 @@ function LUT = lut
     MAX_ROWS = size(i1,1);
     MAX_COLS = size(i1,2);
 
-    % The `z` values of every (x,y) point in the image.
-    % For each pixel, we find its vector in sphere-space.
-    % If its magnitude is longer than its radius, we set `z` to 0.
-    % Otherwise, we find the actual `z` value in sphere-space.
-    zs = zeros(MAX_ROWS,MAX_COLS);
+    % Retrieve all sphere normals.
+    %
+    % For each pixel, we find its vector in R^2 sphere-space.
+    % If its magnitude is longer than its radius, then that pixel
+    % doesn't belong to the sphere. Otherwise, we calculate the
+    % normal and store it.
+    ns = [];
     count = 0;
     for i=1:MAX_ROWS
         for j=1:MAX_COLS
             v = [i,j] - c(:,1:2);  % Vector in sphere-space.
-            if sqrt(v(1) ^ 2 + v(2) ^ 2) > r
-                zs(i,j) = 0;  % Point isn't within the sphere.
-            else
-                zs(i,j) = sqrt(r ^ 2 - v(1) ^ 2 - v(2) ^ 2);
+            if sqrt(sum(v .^ 2)) <= r
+                v = [v, sqrt(r^2 - v(1)^2 - v(2)^2)];
+                v = v / sqrt(sum(v .^ 2));
+                ns(i,j,3) = v(3);
+                ns(i,j,2) = v(2);
+                ns(i,j,1) = v(1);
                 count = count + 1;
             end
         end
@@ -53,6 +57,6 @@ function LUT = lut
     fprintf('%d (%.2f%%) pixels in Sphere\n', count, 100 * count / (MAX_ROWS*MAX_COLS));
 
     % View the calibration sphere.
-    % mesh(zs);
+    % mesh(ns(:,:,3));
     
     []  % Empty result, for now.
