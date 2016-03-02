@@ -66,7 +66,8 @@ function LUT = lut
                 E12 = ceil(sum(E1 ./ E2) / 3) + 1;
                 E23 = ceil(sum(E2 ./ E3) / 3) + 1;
 
-                % TODO: Deal with collisions.
+                % Overwrite on collisions. Doing anything else
+                % causes NaNs further down.
                 LUT{E12,E23} = [X,Y];
 
                 count = count + 1;
@@ -102,7 +103,8 @@ function LUT = lut
     interpX = griddata(RS,CS,XS,xq,yq,'v4');
     interpY = griddata(RS,CS,YS,xq,yq,'v4');
 
-    %{ View the interpolated X and Y values.
+    % View the interpolated X and Y values.
+    %{
     mesh(interpX);
     figure
     mesh(interpY);
@@ -114,5 +116,3 @@ function LUT = lut
             LUT{i,j} = [interpX(i,j), interpY(i,j)];
         end
     end
-
-
