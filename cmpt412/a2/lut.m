@@ -32,13 +32,15 @@ function LUT = lut
     MAX_ROWS = size(i1,1);
     MAX_COLS = size(i1,2);
 
-    % Retrieve all sphere normals.
+    % --- Build an LUT from valid sphere normals --- %
     %
     % For each pixel, we find its vector in R^2 sphere-space.
-    % If its magnitude is longer than its radius, then that pixel
+    % If its magnitude is longer than the radius, then that pixel
     % doesn't belong to the sphere. Otherwise, we calculate the
-    % normal and store it.
-    LUT = [];
+    % normal, convert to stereographic coordinates, and store it
+    % based on ratios of pixel intensities.
+    LUT = {};
+    ns = [];  % Normals. Likely not needed.
     count = 0;
     for i=1:MAX_ROWS
         for j=1:MAX_COLS
@@ -46,9 +48,12 @@ function LUT = lut
             if sqrt(sum(v .^ 2)) <= r
                 v = [v, sqrt(r^2 - v(1)^2 - v(2)^2)];
                 n = v / sqrt(sum(v .^ 2));  % The normal.
+                ns(i,j,1) = n(1);
+                ns(i,j,2) = n(2);
+                ns(i,j,3) = n(3);
 
-                X = v(1) / (1 - v(3));
-                Y = v(2) / (1 - v(3));
+                X = n(1) / (1 - n(3));
+                Y = n(2) / (1 - n(3));
 
                 E1 = [i1(i,j,1), i1(i,j,2), i1(i,j,3)];
                 E2 = [i2(i,j,1), i2(i,j,2), i2(i,j,3)];
@@ -61,8 +66,8 @@ function LUT = lut
                 E12 = ceil(sum(E1 ./ E2) / 3) + 1;
                 E23 = ceil(sum(E2 ./ E3) / 3) + 1;
 
-                LUT(E12,E23,1) = X;
-                LUT(E12,E23,2) = Y;
+                % TODO: Deal with collisions.
+                LUT{E12,E23} = [X,Y];
 
                 count = count + 1;
             end
@@ -70,6 +75,44 @@ function LUT = lut
     end
 
     fprintf('%d (%.2f%%) pixels in Sphere\n', count, 100 * count / (MAX_ROWS*MAX_COLS));
-    
+
     % View the calibration sphere.
     % mesh(ns(:,:,3));
+
+    % --- Interpolate stereographic coordinates in empty cells --- %
+    % Contruct the values necessary for `griddata`.
+    RS = [];
+    CS = [];
+    XS = [];
+    YS = [];
+    for i=1:size(LUT,1)
+        for j=1:size(LUT,2)
+            if not(isempty(LUT{i,j}))
+                RS = [RS, i];
+                CS = [CS, j];
+                XS = [XS, LUT{i,j}(1)];
+                YS = [YS, LUT{i,j}(2)];
+            end
+        end
+    end
+
+    % Interpolate. Note that using any other interpolation scheme
+    % than `v4` yields a high number of `NaN` values.
+    [xq,yq] = meshgrid(1:256,1:256);
+    interpX = griddata(RS,CS,XS,xq,yq,'v4');
+    interpY = griddata(RS,CS,YS,xq,yq,'v4');
+
+    %{ View the interpolated X and Y values.
+    mesh(interpX);
+    figure
+    mesh(interpY);
+    %}
+
+    % Convert back to a cell array.
+    for i=1:size(LUT,1)
+        for j=1:size(LUT,2)
+            LUT{i,j} = [interpX(i,j), interpY(i,j)];
+        end
+    end
+
+
