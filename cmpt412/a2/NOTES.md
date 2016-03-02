@@ -9,7 +9,7 @@ TODO
 - [x] Get sphere radius
 - [x] Get sphere center
 - [x] Get (x,y,z) for all points
-- [ ] Calculate normal for all points
+- [x] Calculate normal for all points
 - [ ] Convert each normal to FG coordinates
 - [ ] *GOAL* Forge lookup table
   - [ ] Interpolate blank cells

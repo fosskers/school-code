@@ -38,25 +38,38 @@ function LUT = lut
     % If its magnitude is longer than its radius, then that pixel
     % doesn't belong to the sphere. Otherwise, we calculate the
     % normal and store it.
-    ns = [];
+    LUT = [];
     count = 0;
     for i=1:MAX_ROWS
         for j=1:MAX_COLS
             v = [i,j] - c(:,1:2);  % Vector in sphere-space.
             if sqrt(sum(v .^ 2)) <= r
                 v = [v, sqrt(r^2 - v(1)^2 - v(2)^2)];
-                v = v / sqrt(sum(v .^ 2));
-                ns(i,j,3) = v(3);
-                ns(i,j,2) = v(2);
-                ns(i,j,1) = v(1);
+                n = v / sqrt(sum(v .^ 2));  % The normal.
+
+                X = v(1) / (1 - v(3));
+                Y = v(2) / (1 - v(3));
+
+                E1 = [i1(i,j,1), i1(i,j,2), i1(i,j,3)];
+                E2 = [i2(i,j,1), i2(i,j,2), i2(i,j,3)];
+                E3 = [i3(i,j,1), i3(i,j,2), i3(i,j,3)];
+
+                % Find the ratios at the vector level, then average
+                % (grayscale) to get a single scalar
+                % intensity. `ceil` and `+ 1` prevent 0-index
+                % errors. Stupid Matlab and its 1-indexing.
+                E12 = ceil(sum(E1 ./ E2) / 3) + 1;
+                E23 = ceil(sum(E2 ./ E3) / 3) + 1;
+
+                LUT(E12,E23,1) = X;
+                LUT(E12,E23,2) = Y;
+
                 count = count + 1;
             end
         end
     end
 
     fprintf('%d (%.2f%%) pixels in Sphere\n', count, 100 * count / (MAX_ROWS*MAX_COLS));
-
+    
     % View the calibration sphere.
     % mesh(ns(:,:,3));
-    
-    []  % Empty result, for now.
