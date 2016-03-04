@@ -25,19 +25,22 @@ for i=1:size(i1,1)
         E2 = [i2(i,j,1), i2(i,j,2), i2(i,j,3)];
         E3 = [i3(i,j,1), i3(i,j,2), i3(i,j,3)];
 
-        E12 = ceil(sum(E1 ./ E2) / 3) + 1;
-        E23 = ceil(sum(E2 ./ E3) / 3) + 1;
+        % Do not proceed if any of the pixels is completely black.
+        if not(allzero(E1) || allzero(E2) || allzero(E3))
+            E12 = ceil(sum(E1 ./ E2) / 3) + 1;
+            E23 = ceil(sum(E2 ./ E3) / 3) + 1;
 
-        % Discover the FG coordinates.
-        XY = LUT{E12,E23};
-        X = XY(1);
-        Y = XY(2);
+            % Discover the FG coordinates.
+            XY = LUT{E12,E23};
+            X = XY(1);
+            Y = XY(2);
 
-        % Recover the surface normal.
-        x = (2 * X) / (1 + X^2 + Y^2);
-        y = (2 * Y) / (1 + X^2 + Y^2);
-        z = (-1 + X^2 + Y^2) / (1 + X^2 + Y^2);
+            % Recover the surface normal.
+            x = (2 * X) / (1 + X^2 + Y^2);
+            y = (2 * Y) / (1 + X^2 + Y^2);
+            z = (-1 + X^2 + Y^2) / (1 + X^2 + Y^2);
 
-        NS{i,j} = [x,y,z];
+            NS{i,j} = [x,y,z];
+        end
     end
 end
