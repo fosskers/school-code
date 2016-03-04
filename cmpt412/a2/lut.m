@@ -5,7 +5,7 @@
 % function is run in.
 %
 % author: Colin Woodbury <cwoodbur@sfu.ca>
-% modified: 2016 February 29 @ 17:06
+% modified: 2016 March  2 @ 13:05
 
 function LUT = lut
     % Read in the three sphere images. 468 rows (max y), 637 columns (max x)
@@ -13,6 +13,8 @@ function LUT = lut
     i2 = imread('sphere-lamp2.tif');
     i3 = imread('sphere-lamp3.tif');
 
+    fprintf('Calibrating LUT...\n');
+    
     % [For testing] Display the three images
     %imshow(i1);
     %    figure;
