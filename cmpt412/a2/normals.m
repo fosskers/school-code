@@ -4,7 +4,7 @@
 % The LUT can be obtained via the `lut` function.
 %
 % author: Colin Woodbury <cwoodbur@sfu.ca>
-% modified: 2016 March  4 @ 10:09
+% modified: 2016 March  7 @ 21:28
 
 function NS = normals(if1,if2,if3,LUT)
 

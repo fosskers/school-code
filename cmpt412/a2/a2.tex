@@ -1,0 +1,117 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+%\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{dkgreen}{rgb}{0,50,0}
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 412 - Assignment 2 : Photometric Stereo}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\section{Methods}
+As advised directly from Dr. Funt, all images were grayscaled before
+further processing. This produced better results than attempting to
+handle colour directly.
+
+\subsection{Lookup Table}
+The first task was to find the \fbox{center} and \fbox{radius} of the
+sphere in the image. As suggested in the assignment specification, I used
+\emph{ginput}. With these two pieces of data we are able to determine
+if a pixel in the image belongs to the sphere with some simple vector
+math. Only if it does do we consider it for addition to the LUT.\\
+
+I implemented solutions with both intensity ratios and without. Using just
+two grayscale values for my indices (i.e. E1 and E2) instead of ratios
+(E1/E2, E2/E3) produced more accurate results. In this respect, only
+two images were necessary instead of three.\\
+
+For missing values in the LUT, we interpolate values with
+the \emph{griddata} function. The interpolated F and G spaces look like:
+
+\begin{center}
+  \includegraphics{Xs}
+  \includegraphics{Ys}
+\end{center}
+
+While small at this resolution, the space itself is fairly textured.
+
+\subsection{Normals for new Images}
+Fairly straightforward, given the LUT. One thing we need to watch for is
+a \emph{threshold} for dark pixels. Simply checking for black is not enough,
+as our final quiver plot will be filled with normals approximately equal to
+$(0,0,-1)$.
+
+\subsection{Quiver Plot}
+Since our images are fairly large, producing a normal for each pixel
+is computationally expensive. Instead, we average the normals of each
+10-by-10 block of pixels.
+
+\section{Results}
+
+My solution produces the following quiver plots:
+
+\begin{center}
+  \includegraphics[scale=0.5]{quiver-sphere}
+  \includegraphics[scale=0.5]{quiver-cone}
+  \includegraphics[scale=0.5]{quiver-cylinder}
+  \includegraphics[scale=0.5]{quiver-ellip}
+  \includegraphics[scale=0.5]{quiver-hex1}
+  \includegraphics[scale=0.5]{quiver-hex2}
+\end{center}
+
+As can be seen, the solution can recover the surface orientations for
+all the test images.
+
+\section{Matlab Code}
+
+\subsection{lut.m}
+
+\lstinputlisting[language=Matlab]{lut.m}
+
+\subsection{normals.m}
+
+\lstinputlisting[language=Matlab]{normals.m}
+
+\subsection{quiv.m}
+
+\lstinputlisting[language=Matlab]{quiv.m}
+
+\subsection{demo.m}
+
+\lstinputlisting[language=Matlab]{demo.m}
+
+\end{document}

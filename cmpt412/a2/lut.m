@@ -5,7 +5,7 @@
 % function is run in.
 %
 % author: Colin Woodbury <cwoodbur@sfu.ca>
-% modified: 2016 March  2 @ 13:05
+% modified: 2016 March  7 @ 21:27
 
 function LUT = lut
     % Read in the three sphere images. 468 rows (max y), 637 columns (max x)
@@ -14,13 +14,6 @@ function LUT = lut
     i3 = rgb2gray(imread('sphere-lamp3.tif'));
 
     fprintf('Calibrating LUT...\n');
-    
-    % [For testing] Display the three images
-    %imshow(i1);
-    %    figure;
-    %    imshow(i2);
-    %    figure;
-    %imshow(i3);
     
     % Points sampled from the sphere to determine the radius:
     % (181,304) (464,304) (322,158) (322,436)
