@@ -39,9 +39,9 @@ function LUT = lut
     % For each pixel, we find its vector in R^2 sphere-space.
     % If its magnitude is longer than the radius, then that pixel
     % doesn't belong to the sphere. Otherwise, we calculate the
-    % normal, convert to stereographic coordinates, and store it
-    % based on ratios of pixel intensities.
+    % normal, and convert it to stereographic coordinates.
     LUT = {};
+    LUT{256,256} = [0,0];
     ns = [];  % Normals. Likely not needed.
     count = 0;
     for i=1:MAX_ROWS
@@ -57,18 +57,12 @@ function LUT = lut
                 X = n(1) / (1 - n(3));
                 Y = n(2) / (1 - n(3));
 
-                E1 = i1(i,j);
-                E2 = i2(i,j);
-                E3 = i3(i,j);
-
-                % `ceil` and `+ 1` prevent 0-index
-                % errors. Stupid Matlab and its 1-indexing.
-                E12 = ceil(E1 / E2) + 1;
-                E23 = ceil(E2 / E3) + 1;
+                E1 = i1(i,j) + 1;
+                E2 = i2(i,j) + 1;
 
                 % Overwrite on collisions. Doing anything else
                 % causes NaNs further down.
-                LUT{E12,E23} = [X,Y];
+                LUT{E1,E2} = [X,Y];
 
                 count = count + 1;
             end
@@ -77,9 +71,13 @@ function LUT = lut
 
     fprintf('%d (%.2f%%) pixels in Sphere\n', count, 100 * count / (MAX_ROWS*MAX_COLS));
 
+    fprintf('LUT size: %d x %d\n', size(LUT,1), size(LUT,2));
+
     % View the calibration sphere.
     % mesh(ns(:,:,3));
 
+    fprintf('Gather LUT values to interpolate\n');
+    
     % --- Interpolate stereographic coordinates in empty cells --- %
     % Contruct the values necessary for `griddata`.
     RS = [];
@@ -97,11 +95,13 @@ function LUT = lut
         end
     end
 
+    fprintf('Interpolate\n');
+    
     % Interpolate. Note that using any other interpolation scheme
     % than `v4` yields a high number of `NaN` values.
     [xq,yq] = meshgrid(1:256,1:256);
-    interpX = griddata(RS,CS,XS,xq,yq,'v4');
-    interpY = griddata(RS,CS,YS,xq,yq,'v4');
+    interpX = griddata(RS,CS,XS,xq,yq,'linear');
+    interpY = griddata(RS,CS,YS,xq,yq,'linear');
 
     % View the interpolated X and Y values.
     %{
@@ -110,6 +110,8 @@ function LUT = lut
     mesh(interpY);
     %}
 
+    fprintf('Repair LUT\n');
+    
     % Convert back to a cell array.
     for i=1:size(LUT,1)
         for j=1:size(LUT,2)

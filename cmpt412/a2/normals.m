@@ -12,7 +12,7 @@ fprintf('Discovering surface orientation...\n');
 
 i1 = rgb2gray(imread(if1));
 i2 = rgb2gray(imread(if2));
-i3 = rgb2gray(imread(if3));
+%i3 = rgb2gray(imread(if3));
 
 % A cell array of recovered surface normals.
 NS = {};
@@ -21,17 +21,13 @@ for i=1:size(i1,1)
     for j=1:size(i1,2)
         % Find the intensity indices in the _exact_ same way as is
         % done in `lut.m`.
-        E1 = i1(i,j);
-        E2 = i2(i,j);
-        E3 = i3(i,j);
-
+        E1 = i1(i,j) + 1;
+        E2 = i2(i,j) + 1;
+ 
         % Do not proceed if any of the pixels is completely black.
-        if not(allzero(E1) || allzero(E2) || allzero(E3))
-            E12 = ceil(E1 / E2) + 1;
-            E23 = ceil(E2 / E3) + 1;
-
-            % Discover the FG coordinates.
-            XY = LUT{E12,E23};
+        if E1 ~= 1 && E2 ~= 1
+             % Discover the FG coordinates.
+            XY = LUT{E1,E2};
             X = XY(1);
             Y = XY(2);
 
