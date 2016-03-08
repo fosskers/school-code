@@ -9,9 +9,9 @@
 
 function LUT = lut
     % Read in the three sphere images. 468 rows (max y), 637 columns (max x)
-    i1 = imread('sphere-lamp1.tif');
-    i2 = imread('sphere-lamp2.tif');
-    i3 = imread('sphere-lamp3.tif');
+    i1 = rgb2gray(imread('sphere-lamp1.tif'));
+    i2 = rgb2gray(imread('sphere-lamp2.tif'));
+    i3 = rgb2gray(imread('sphere-lamp3.tif'));
 
     fprintf('Calibrating LUT...\n');
     
@@ -57,16 +57,14 @@ function LUT = lut
                 X = n(1) / (1 - n(3));
                 Y = n(2) / (1 - n(3));
 
-                E1 = [i1(i,j,1), i1(i,j,2), i1(i,j,3)];
-                E2 = [i2(i,j,1), i2(i,j,2), i2(i,j,3)];
-                E3 = [i3(i,j,1), i3(i,j,2), i3(i,j,3)];
+                E1 = i1(i,j);
+                E2 = i2(i,j);
+                E3 = i3(i,j);
 
-                % Find the ratios at the vector level, then average
-                % (grayscale) to get a single scalar
-                % intensity. `ceil` and `+ 1` prevent 0-index
+                % `ceil` and `+ 1` prevent 0-index
                 % errors. Stupid Matlab and its 1-indexing.
-                E12 = ceil(sum(E1 ./ E2) / 3) + 1;
-                E23 = ceil(sum(E2 ./ E3) / 3) + 1;
+                E12 = ceil(E1 / E2) + 1;
+                E23 = ceil(E2 / E3) + 1;
 
                 % Overwrite on collisions. Doing anything else
                 % causes NaNs further down.
