@@ -41,7 +41,7 @@ function LUT = lut
     % doesn't belong to the sphere. Otherwise, we calculate the
     % normal, and convert it to stereographic coordinates.
     LUT = {};
-    LUT{256,256} = [0,0];
+    LUT{256,256} = [];
     ns = [];  % Normals. Likely not needed.
     count = 0;
     for i=1:MAX_ROWS

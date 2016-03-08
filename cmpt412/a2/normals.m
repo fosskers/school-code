@@ -24,8 +24,8 @@ for i=1:size(i1,1)
         E1 = i1(i,j) + 1;
         E2 = i2(i,j) + 1;
  
-        % Do not proceed if any of the pixels is completely black.
-        if E1 ~= 1 && E2 ~= 1
+        % Do not proceed if any of the pixels are completely black.
+        if E1 > 20 && E2 > 20
              % Discover the FG coordinates.
             XY = LUT{E1,E2};
             X = XY(1);
