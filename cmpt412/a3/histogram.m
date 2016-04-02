@@ -26,17 +26,7 @@ for i=1:size(img,1)
         if img(i,j,1) > 0
             % Transform CbCr values into bin indices. We use `ceil`
             % here to avoid index-by-0 errors. Stupid Matlab.
-            if img(i,j,2) == 0
-                CB = 1;
-            else
-                CB = ceil((cast(img(i,j,2), 'single') * 16) / 255);
-            end
-
-            if img(i,j,3) == 0
-                CR = 1;
-            else
-                CR = ceil((cast(img(i,j,3), 'single') * 16) / 255);
-            end
+            [CB,CR] = bin(img(i,j,2), img(i,j,3));
 
             if CB == 0 || CR == 0
                 fprintf('FUCK!\n')
