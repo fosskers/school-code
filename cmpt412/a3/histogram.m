@@ -13,11 +13,11 @@
 % be a decent default.
 
 function H = histogram(img)
-% Our histogram.
-H{16,16} = [];
-blacks = 0;
+H{16,16} = [];  % Our histogram.
+blacks = 0;     % A count of the black pixels discarded.
+totalPix = size(img,1) * size(img,2);
 
-fprintf('Image Pixels: %d\n', size(img,1) * size(img,2));
+fprintf('Image Pixels: %d\n', totalPix);
 
 for i=1:size(img,1)
     for j=1:size(img,2)
@@ -55,4 +55,5 @@ for i=1:size(img,1)
     end
 end
 
-fprintf('Black pixels discarded: %d\n', blacks);
+fprintf('Black pixels discarded: %d (%.2f%%)\n', blacks, 100 * blacks ...
+        / totalPix);
