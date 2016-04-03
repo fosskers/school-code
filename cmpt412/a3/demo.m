@@ -13,10 +13,10 @@ models = { 'database/swain_database/crunchberries.sqr.128.bmp'
            'database/swain_database/carebears.sqr.128.bmp'
            'database/swain_database/bakit.sqr.128.bmp' };
 
-I = imread('database/collage.bmp');
+I = rgb2ycbcr(imread('database/collage.bmp'));
 
 for i=1:size(models,1)
-    M = histogram(imread(models{i}));
+    M = histogram(rgb2ycbcr(imread(models{i})));
     [X,Y] = backproj(I,M);
 
     figure
