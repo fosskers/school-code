@@ -2,4 +2,4 @@
 
 clear;
 
-histtrack('bluecup.mat', 178, 318, 31, 148);
+[XS,YS] = histtrack('bluecup.mat', 178, 318, 31, 148);

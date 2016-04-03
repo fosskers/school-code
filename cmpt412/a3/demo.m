@@ -13,19 +13,22 @@ models = { 'database/swain_database/crunchberries.sqr.128.bmp'
            'database/swain_database/carebears.sqr.128.bmp'
            'database/swain_database/bakit.sqr.128.bmp' };
 
-I = rgb2ycbcr(imread('database/collage.bmp'));
+img = rgb2ycbcr(imread('database/collage.bmp'));
+I = histogram(img);
+
+figure
+imshow(img);
 
 for i=1:size(models,1)
-    M = histogram(rgb2ycbcr(imread(models{i})));
-    [X,Y] = backproj(I,M);
+    fprintf('Demoing %s\n',models{i});
 
-    figure
-    imshow(I);
+    M = histogram(rgb2ycbcr(imread(models{i})));
+    [X,Y] = backproj(img,I,M);
+
+    % Add match results to the plot.
     hold on;
     p = plot([Y], [X],'o');
     p.MarkerEdgeColor = 'red';
     p.MarkerSize = 20;
     hold off;
-    title(models{i});
 end
-

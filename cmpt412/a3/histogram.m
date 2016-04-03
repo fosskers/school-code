@@ -13,7 +13,7 @@
 % be a decent default.
 
 function H = histogram(img)
-H{16,16} = [];  % Our histogram.
+H{32,32} = [];  % Our histogram.
 blacks = 0;     % A count of the black pixels discarded.
 totalPix = size(img,1) * size(img,2);
 
@@ -21,9 +21,7 @@ fprintf('Image Pixels: %d\n', totalPix);
 
 for i=1:size(img,1)
     for j=1:size(img,2)
-        % TODO: Don't add really dark pixels!
-        % Might also have to deal with int overflow.
-        if img(i,j,1) > 0
+        if img(i,j,1) > 20
             % Transform CbCr values into bin indices.
             [CB,CR] = bin(img(i,j,2), img(i,j,3));
         

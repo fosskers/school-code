@@ -17,15 +17,16 @@ YS = [];
 for i=1:size(V,4)
     fprintf('FRAME %d\n',i);
 
-    F = rgb2ycbcr(V(:, :, :, i));  % The current Frame
-    [X,Y] = backproj(F,M);
+    Fimg = rgb2ycbcr(V(:, :, :, i));  % The current Frame
+    F = histogram(Fimg);
+    [X,Y] = backproj(Fimg,F,M);
 
     XS = [XS; X];
     YS = [YS; Y];
 end
 
 figure
-imshow(F);
+imshow(Fimg);
 hold on;
 p = plot([YS], [XS], 'o');
 p.MarkerEdgeColor = 'red';

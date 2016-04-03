@@ -3,9 +3,8 @@
 % within it.
 % author: Colin Woodbury <cwoodbur@sfu.ca>
 
-function [X,Y] = backproj(img,model)
-I = histogram(img);
-R = ratio(I,model);  % The Ratio Histogram
+function [X,Y] = backproj(img,I,M)
+R = ratio(I,M);  % The Ratio Histogram
 B = [];
 
 % Assign ratios to each pixel of the image.
@@ -19,7 +18,7 @@ end
 
 % Apply the convolution.
 fprintf('Convolving...\n');
-MASK = ones(20,20);
+MASK = ones(20,20);  % Experimentally best-sized mask.
 C = conv2(B,MASK);
 
 % Find the indices of the maximum point.
