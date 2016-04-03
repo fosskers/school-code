@@ -17,7 +17,7 @@ img = rgb2ycbcr(imread('database/collage.bmp'));
 I = histogram(img);
 
 figure
-imshow(img);
+imshow(ycbcr2rgb(img));
 
 for i=1:size(models,1)
     fprintf('Demoing %s\n',models{i});

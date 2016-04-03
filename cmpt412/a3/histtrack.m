@@ -9,7 +9,7 @@ I = rgb2ycbcr(V(xStart:xEnd, yStart:yEnd, 1:3, 1));  % The model matrix.
 M = histogram(I);  % Model histogram
 
 figure
-imshow(I);
+imshow(ycbcr2rgb(I));
 
 XS = [];
 YS = [];
@@ -26,7 +26,7 @@ for i=1:size(V,4)
 end
 
 figure
-imshow(Fimg);
+imshow(ycbcr2rgb(Fimg));
 hold on;
 p = plot([YS], [XS], 'o');
 p.MarkerEdgeColor = 'red';
