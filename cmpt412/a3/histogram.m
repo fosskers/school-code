@@ -4,7 +4,7 @@
 %
 % The input `img` is assumed to be a NxMx3 matrix of YCbCr
 % values. Experiments have shown YCbCr Histograms to have a higher
-% match rate RGB, while requiring less computation to construct.
+% match rate than RGB, while requiring less computation to construct.
 %
 % Images read with `imread` can be converted to YCbCr with `rgb2ycbcr`.
 %
@@ -24,13 +24,8 @@ for i=1:size(img,1)
         % TODO: Don't add really dark pixels!
         % Might also have to deal with int overflow.
         if img(i,j,1) > 0
-            % Transform CbCr values into bin indices. We use `ceil`
-            % here to avoid index-by-0 errors. Stupid Matlab.
+            % Transform CbCr values into bin indices.
             [CB,CR] = bin(img(i,j,2), img(i,j,3));
-
-            if CB == 0 || CR == 0
-                fprintf('FUCK!\n')
-            end
         
             % Increment the bin's pixel count, watching out for empty
             % bins.

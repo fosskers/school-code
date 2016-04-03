@@ -19,7 +19,7 @@ end
 
 % Apply the convolution.
 fprintf('Convolving...\n');
-MASK = ones(10,10);
+MASK = ones(20,20);
 C = conv2(B,MASK);
 
 % Find the indices of the maximum point.
