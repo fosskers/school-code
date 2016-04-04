@@ -3,7 +3,7 @@
 % within it.
 % author: Colin Woodbury <cwoodbur@sfu.ca>
 
-function [X,Y] = backproj(img,I,M)
+function [X Y] = backproj(img,I,M)
 R = ratio(I,M);  % The Ratio Histogram
 B = [];
 
@@ -22,4 +22,4 @@ MASK = ones(20,20);  % Experimentally best-sized mask.
 C = conv2(B,MASK);
 
 % Find the indices of the maximum point.
-[X,Y] = find(C == max(C(:)));
+[Y X] = find(C == max(C(:)));

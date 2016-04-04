@@ -92,9 +92,10 @@ it traces the following path through the 50 frames of the video:
 Based on Color Indexing by Swain and Ballard, I have written a Haskell
 library \url{https://github.com/fosskers/colour-hist} which implements their
 algorithms. Currently only Histogram Intersection is implemented, but I am
-happy with the terseness and performance of the code. For Backprojection,
-I will need to create another library for simple Matrix convolution,
-as there doesn't seem to be an implementation using the ubiquitous Haskell
+happy with the terseness (intersection is one line) and performance of the
+code. For Backprojection, I will need to create another library for simple
+Matrix convolution, as there doesn't seem to be an implementation using the
+ubiquitous Haskell
 \emph{Vector} type.
 
 \section{Matlab Code}

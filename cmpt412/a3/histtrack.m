@@ -11,7 +11,7 @@ for i=1:size(V,4)
 
     Fimg = rgb2ycbcr(V(:, :, :, i));  % The current Frame
     F = histogram(Fimg);
-    [X,Y] = backproj(Fimg,F,M);
+    [X Y] = backproj(Fimg,F,M);
 
     XS = [XS; X];
     YS = [YS; Y];

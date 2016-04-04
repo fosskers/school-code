@@ -27,7 +27,7 @@ for i=1:size(models,1)
 
     % Add match results to the plot.
     hold on;
-    p = plot([Y], [X],'o');
+    p = plot([X], [Y],'o');
     p.MarkerEdgeColor = 'red';
     p.MarkerSize = 20;
     hold off;
