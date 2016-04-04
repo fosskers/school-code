@@ -88,6 +88,19 @@ it traces the following path through the 50 frames of the video:
   \includegraphics[scale=0.75]{hist-track-path}
 \end{center}
 
+\subsection{Object Tracking via Mean Shift}
+Using the same model as shown above, the Mean-shift method produces
+more accurate results faster than naive Backprojection.
+
+\begin{center}
+  \includegraphics[scale=0.75]{mean-shift-path}
+\end{center}
+
+For each frame, we check a 200x200 square around our current position.
+A square this sized (fit from the model) contains the entire model
+comfortably. 100x100 loses track of the object after 10 frames or so,
+and 150x150 has a slightly less accurate path.
+
 \section{Further Work}
 Based on Color Indexing by Swain and Ballard, I have written a Haskell
 library \url{https://github.com/fosskers/colour-hist} which implements their
@@ -127,5 +140,17 @@ ubiquitous Haskell
 \subsection{trackdemo.m}
 
 \lstinputlisting[language=Matlab]{trackdemo.m}
+
+\subsection{meanshift.m}
+
+\lstinputlisting[language=Matlab]{meanshift.m}
+
+\subsection{com.m}
+
+\lstinputlisting[language=Matlab]{com.m}
+
+\subsection{shiftdemo.m}
+
+\lstinputlisting[language=Matlab]{shiftdemo.m}
 
 \end{document}
