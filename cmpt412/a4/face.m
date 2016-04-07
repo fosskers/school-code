@@ -4,8 +4,24 @@
 
 % Demo code
 function F = face
-    I = single(imread('s1/1.pgm'));
-    F = vectorize(I);
+    F = database
+end
+
+% Populate the database.
+function DB = database
+    DB = [];
+
+    for s=1:40
+        for i=1:10
+            DB = [DB; subject(sprintf('s%d',s),sprintf('s%d/%d.pgm',s,i))];
+        end
+    end
+end
+
+% Given a subject name and filename to a picture of them, construct
+% a `struct` that identifies them with their feature vector.
+function S = subject(name,file)
+    S = struct('name',name,'vec',vectorize(imread(file)));
 end
 
 % Turn an image file into a transformed feature vector via
@@ -25,4 +41,10 @@ function F = vectorize(img)
     % the source paper demonstrates that the Complex component has
     % less of an effect than the Real.
     F = abs(F);
+end
+
+% Find the Euclidean Distance between two vectors. For face
+% recognition, the lower the value, the better.
+function D = dist(U,V)
+    D = sqrt(sum((U - V) .^ 2));
 end
