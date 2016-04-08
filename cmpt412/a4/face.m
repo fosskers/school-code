@@ -3,8 +3,25 @@
 % author: Colin Woodbury
 
 % Demo code
-function F = face
-    F = database
+function face
+    DB = database;
+
+    % Randomize and extract a test set.
+    DB = DB(randperm(length(DB)));
+    tests = DB(1:40);
+    DB = DB(41:end);
+    matches = 0;
+
+    % Try to identify the face in the test set. How accurate are
+    % we?
+    for i=1:length(tests)
+        name = identify(tests(i).vec,DB);
+        if strcmp(name,tests(i).name)
+            matches = matches + 1;
+        end
+    end
+
+    fprintf('Identified %d/%d faces correctly\n', matches, length(tests));
 end
 
 % Populate the database.
@@ -41,6 +58,27 @@ function F = vectorize(img)
     % the source paper demonstrates that the Complex component has
     % less of an effect than the Real.
     F = abs(F);
+end
+
+% Given a face in its feature vector form and a database to match
+% against, yield a (subject) name associated with the candidate
+% match.
+% Assume that the exact face `F` is not already present in the DB.
+function name = identify(F,DB)
+    M_rate = Inf;
+    name = 'Matlab needs strong typing';
+
+    % Naively compare the given Face (vector) with every other one
+    % in the database. The candidate match is the vector with the
+    % lowest Euclidean distance.
+    for i=1:length(DB)
+        D = dist(F,DB(i).vec);
+
+        if D < M_rate
+            M_rate = D;
+            name = DB(i).name;
+        end
+    end
 end
 
 % Find the Euclidean Distance between two vectors. For face
