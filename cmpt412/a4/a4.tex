@@ -1,0 +1,117 @@
+\documentclass{article}
+% GENERAL
+\usepackage{setspace,mathtools,amsfonts,amsmath,amsthm,amssymb,hyperref}
+%\usepackage{tikz,epigraph,pgfplots}  % For trees
+\usepackage[utf8]{inputenc}
+\usepackage{tikz-qtree,tikz-qtree-compat}
+\usepackage{forest}
+
+% FOR SOURCE CODE
+\usepackage{listings}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{dkgreen}{rgb}{0,50,0}
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=4
+}
+
+% MARGINS
+\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\onehalfspacing
+
+\begin{document}
+\title{CMPT 412 - Assignment 4 : Face Recognition}
+\author{Colin Woodbury\\ 301238755\\ cwoodbur@sfu.ca}
+\date{\today}
+\maketitle
+
+% --- TABLE OF CONTENTS ---
+\tableofcontents
+\clearpage
+% -------------------------
+
+\twocolumn
+
+\section{Methods}
+\subsection{Implementation}
+\textbf{Feature Vectors}
+After transforming our image into a matrix of wave component values, we
+follow the ``lower-right quadrant'' setup described in the paper. We
+choose the 16 most prominant values from the top left corner of the matrix
+(a 4-by-4 block), and rearrange this as a 16-by-1 column vector. We then
+run the \emph{abs} function across it to obtain the raw magnitude of
+each complex number. We find that ignoring the distinction between the real
+and complex component, and just considering the magnitude to be sufficient
+for identification.\\
+
+\textbf{Database} We represent the database of feature vectors as a vector
+of structs. Each struct has a \emph{name} associating it with the
+original subject, and a \emph{vec} value, its feature vector.\\
+
+\textbf{Identification} Each feature vector is a member of a 16-dimensional
+vector space, and as described in the source paper, we find simple Euclidean
+Distance to be a good measure of similarity. To actually identify,
+we take a feature vector unknown to the database and find its distance
+to each of the database members. The member with the lowest distance
+is considered the ``match''.
+
+\subsection{Testing}
+\textbf{Test Set} To extract a test set from the database, we first
+randomized it, then partitioned it into a 40-member test set, and a
+360-member database. By running the top-level \emph{face} function
+multiple times, we get a different randomization, and thus a different
+test set. Despite this, we see a high match rate.
+
+\section{Results}
+
+\begin{center}
+\begin{tabular}{c | c | c}
+  Test Set Size & Average Matches & Percent\\
+  \hline
+  40 & 39.3 & 98.5\%\\
+  100 & 96 & 96\%\\
+  200 & 176 & 88\%
+\end{tabular}
+\end{center}
+
+For each test set size, the \emph{face} function was run 10 times.
+
+\section{Further Work}
+Had I more time, I would have performed the following experiments involving
+modified test sets:
+
+\begin{itemize}
+\item Minor rotation
+\item Heavy rotation
+\item Occlusion
+\item Flipping / mirroring
+\item Images of faces not in the database
+\end{itemize}
+
+\subsection{Thoughts on Matching via Fourier}
+Ideally for facial recognition, one or two training photos per subject
+would be the practical limit. Much more than that and your humans are
+going to lose patience. As this method needs many more than that,
+it shouldn't be considered practical.
+
+\onecolumn
+
+\section{Matlab Code}
+
+\subsection{face.m}
+
+\lstinputlisting[language=Matlab]{face.m}
+
+\end{document}

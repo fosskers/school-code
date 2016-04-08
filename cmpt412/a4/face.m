@@ -8,8 +8,8 @@ function face
 
     % Randomize and extract a test set.
     DB = DB(randperm(length(DB)));
-    tests = DB(1:40);
-    DB = DB(41:end);
+    tests = DB(1:200);
+    DB = DB(201:end);
     matches = 0;
 
     % Try to identify the face in the test set. How accurate are
